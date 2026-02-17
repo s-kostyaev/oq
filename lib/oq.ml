@@ -637,6 +637,11 @@ module Org = struct
           in
           loop 1
     in
+    let is_known_plain_scheme token =
+      let lower = String.lowercase token in
+      String.is_prefix lower ~prefix:"file:"
+      || String.is_prefix lower ~prefix:"mailto:"
+    in
     whitespace_tokens line
     |> List.filter_map ~f:(fun token ->
            let looks_like_bracket_fragment =
@@ -647,7 +652,9 @@ module Org = struct
            if looks_like_bracket_fragment then None
            else
              let normalized = trim_plain_link_token token in
-             if is_uri_with_scheme normalized then Some normalized else None)
+             if is_uri_with_scheme normalized || is_known_plain_scheme normalized
+             then Some normalized
+             else None)
 
   let extract_bracket_links line =
     let rec loop position acc =
