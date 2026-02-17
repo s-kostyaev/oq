@@ -69,6 +69,7 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
 - `SRC` blocks with switches and no language are handled as language-less
   (for example `#+BEGIN_SRC -n :results output`, `#+BEGIN_SRC +n :results output`).
 - `.code("lang")` matching is case-insensitive (`OCAML` matches `ocaml`).
+- `#+END_...` block closing lines tolerate trailing text after block kind.
 - Dynamic blocks (`#+BEGIN: ...` / `#+END:`) are treated as opaque regions,
   so unsupported internals do not break parsing.
 - Other valid block types (for example `CENTER`, `VERSE`, `COMMENT`) are parsed as opaque regions:

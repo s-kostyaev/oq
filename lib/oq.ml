@@ -533,9 +533,18 @@ module Org = struct
     if not (String.is_prefix upper ~prefix) then None
     else
       let kind =
-        String.drop_prefix upper (String.length prefix)
-        |> String.strip
-        |> String.uppercase
+        let remainder =
+          String.drop_prefix upper (String.length prefix) |> String.strip
+        in
+        let length = String.length remainder in
+        let rec find_whitespace index =
+          if index >= length then None
+          else if Char.is_whitespace remainder.[index] then Some index
+          else find_whitespace (index + 1)
+        in
+        match find_whitespace 0 with
+        | Some index -> String.prefix remainder index |> String.strip
+        | None -> remainder
       in
       Some kind
 

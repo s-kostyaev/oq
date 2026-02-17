@@ -223,6 +223,18 @@ let x = 1
 
 let () =
   let inline_doc =
+    parse_inline "src-end-trailing.org"
+      {|
+* Demo
+#+BEGIN_SRC ocaml
+let x = 1
+#+END_SRC trailing text
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".code('ocaml') | .length") "1")
+
+let () =
+  let inline_doc =
     parse_inline "comment-lines.org"
       {|
 * Note
