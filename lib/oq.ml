@@ -760,11 +760,17 @@ module Org = struct
       | Some index -> index > 1
       | None -> false)
     in
+    let is_windows_unc_path =
+      String.length token > 2
+      && Char.equal token.[0] '\\'
+      && Char.equal token.[1] '\\'
+    in
     has_prefix "/"
     || has_prefix "./"
     || has_prefix "../"
     || is_tilde_path
     || is_windows_drive_path
+    || is_windows_unc_path
 
   let is_custom_plain_scheme ~custom_link_types token =
     match String.lsplit2 token ~on:':' with

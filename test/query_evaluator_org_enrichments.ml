@@ -617,6 +617,19 @@ D:\docs\spec.org
 
 let () =
   let inline_doc =
+    parse_inline "links-file-windows-unc.org"
+      {|
+* Note
+\\server\share\notes.org
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".links | .length") "1");
+  assert_contains
+    (run_ok inline_doc ".links | map(.target)")
+    "\\\\server\\share\\notes.org"
+
+let () =
+  let inline_doc =
     parse_inline "links-more-schemes.org"
       {|
 * Note

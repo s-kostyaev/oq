@@ -99,7 +99,7 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
 - Plain file links without `file:` prefix are recognized when they look like
   complete paths (for example `./notes.org`, `../docs/spec.org`, `~/notes.org`,
   `~alice/docs/spec.org`, `C:/work/notes.org`, `D:\docs\spec.org`,
-  `/ssh:me@host:/tmp/notes.org`).
+  `\\server\share\notes.org`, `/ssh:me@host:/tmp/notes.org`).
 - Plain `id:...` and `custom-id:...` links are also recognized.
 - Plain `news:...`, `shell:...`, `elisp:...`, `help:...`, `info:...`, `man:...`,
   `woman:...`, `calc:...`, `tel:...`, `sms:...`, and `geo:...` links are also recognized.

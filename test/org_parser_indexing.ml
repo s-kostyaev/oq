@@ -879,6 +879,22 @@ let () =
 
 let () =
   match
+    Oq.Org.parse_string ~path:"links-file-windows-unc.org"
+      "* Note\n\\\\server\\share\\notes.org\n"
+  with
+  | Error err ->
+      failwithf "expected windows UNC file path links parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.links = 1);
+      assert
+        (String.equal
+           (List.hd_exn doc.index.links).target
+           "\\\\server\\share\\notes.org")
+
+let () =
+  match
     Oq.Org.parse_string ~path:"links-more-schemes.org"
       "* Note\nirc:#emacs\ngnus:group\ndocview:/tmp/a.pdf::5\nrmail:Inbox\nbbdb:John_Doe\n"
   with
