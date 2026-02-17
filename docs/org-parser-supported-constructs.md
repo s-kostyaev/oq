@@ -67,7 +67,7 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
 - `SRC` blocks with header arguments and no language are handled as language-less
   (for example `#+BEGIN_SRC :results output`).
 - `SRC` blocks with switches and no language are handled as language-less
-  (for example `#+BEGIN_SRC -n :results output`).
+  (for example `#+BEGIN_SRC -n :results output`, `#+BEGIN_SRC +n :results output`).
 - `.code("lang")` matching is case-insensitive (`OCAML` matches `ocaml`).
 - Dynamic blocks (`#+BEGIN: ...` / `#+END:`) are treated as opaque regions,
   so unsupported internals do not break parsing.
