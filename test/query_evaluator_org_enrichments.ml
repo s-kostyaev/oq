@@ -295,6 +295,31 @@ text
 
 let () =
   let inline_doc =
+    parse_inline "todo-token.org"
+      {|
+* Note
+:TODO:
+text
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".headings | .length") "1");
+  assert (String.equal (run_ok inline_doc ".properties | .length") "0")
+
+let () =
+  let inline_doc =
+    parse_inline "custom-drawer-opaque.org"
+      {|
+* Note
+:MYDRAWER:
+content
+:END:
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".headings | .length") "1");
+  assert (String.equal (run_ok inline_doc ".properties | .length") "0")
+
+let () =
+  let inline_doc =
     parse_inline "indented-colon.org"
       {|
 * Note
