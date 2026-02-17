@@ -61,12 +61,13 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
   conservatively when a matching `:END:` appears before the next heading.
 - Custom `:NAME:` drawers are also recognized conservatively with the same
   before-next-heading `:END:` rule; this prevents false opens on isolated
-  plain tokens
-  while keeping drawer internals opaque to block/link parsing.
+  plain tokens while keeping drawer internals opaque to block parsing.
 - Drawer markers may be indented with leading whitespace (for example inside
   list context), matching Org behavior.
 - Drawer closing marker `:END:` is matched case-insensitively and may be
   indented with leading whitespace once a drawer is open.
+- Plain/bracket links inside drawer text are indexed, while keyword-like lines
+  (for example `#+LINK: ...`) stay inactive for link extraction.
 - `.property("KEY")` matching is case-insensitive for property names.
 - References: `lib/oq.ml:382`, `lib/oq.ml:396`, `lib/oq.ml:763`.
 
@@ -98,6 +99,8 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
 - Other valid block types (for example `CENTER`, `VERSE`, `COMMENT`) are parsed as opaque regions:
   - they do not fail parsing,
   - they are not added to `index.blocks`.
+- Link extraction runs inside non-code block bodies (for example `QUOTE`,
+  `CENTER`, dynamic blocks) but remains disabled inside `SRC`/`EXAMPLE`.
 - References: `lib/oq.ml:419`, `lib/oq.ml:431`, `lib/oq.ml:463`.
 
 8. Links in text

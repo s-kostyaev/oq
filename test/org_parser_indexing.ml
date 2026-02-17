@@ -1120,6 +1120,59 @@ let () =
 
 let () =
   match
+    Oq.Org.parse_string ~path:"links-in-custom-drawer.org"
+      "* Note\n:MYDRAWER:\nhttps://example.com\n:END:\n"
+  with
+  | Error err ->
+      failwithf "expected links in custom drawer parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.links = 1);
+      assert (String.equal (List.hd_exn doc.index.links).target "https://example.com")
+
+let () =
+  match
+    Oq.Org.parse_string ~path:"links-in-center-block.org"
+      "* Note\n#+BEGIN_CENTER\nhttps://example.com\n#+END_CENTER\n"
+  with
+  | Error err ->
+      failwithf "expected links in center block parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.links = 1);
+      assert (String.equal (List.hd_exn doc.index.links).target "https://example.com")
+
+let () =
+  match
+    Oq.Org.parse_string ~path:"links-in-dynamic-block.org"
+      "* Note\n#+BEGIN: clocktable :scope file\nhttps://example.com\n#+END:\n"
+  with
+  | Error err ->
+      failwithf "expected links in dynamic block parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.links = 1);
+      assert (String.equal (List.hd_exn doc.index.links).target "https://example.com")
+
+let () =
+  match
+    Oq.Org.parse_string ~path:"links-in-quote-block.org"
+      "* Note\n#+BEGIN_QUOTE\nhttps://example.com\n#+END_QUOTE\n"
+  with
+  | Error err ->
+      failwithf "expected links in quote block parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.links = 1);
+      assert (List.length doc.index.blocks = 1);
+      assert (String.equal (List.hd_exn doc.index.links).target "https://example.com")
+
+let () =
+  match
     Oq.Org.parse_string ~path:"links-custom-abbrev-indented-keyword.org"
       "* Note\n  #+LINK: gh https://github.com/%s\ngh:ocaml/dune\n"
   with

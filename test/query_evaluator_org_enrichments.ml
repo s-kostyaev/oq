@@ -861,6 +861,66 @@ gh:ocaml/dune
 
 let () =
   let inline_doc =
+    parse_inline "links-in-custom-drawer.org"
+      {|
+* Note
+:MYDRAWER:
+https://example.com
+:END:
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".links | .length") "1");
+  assert_contains
+    (run_ok inline_doc ".links | map(.target)")
+    "https://example.com"
+
+let () =
+  let inline_doc =
+    parse_inline "links-in-center-block.org"
+      {|
+* Note
+#+BEGIN_CENTER
+https://example.com
+#+END_CENTER
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".links | .length") "1");
+  assert_contains
+    (run_ok inline_doc ".links | map(.target)")
+    "https://example.com"
+
+let () =
+  let inline_doc =
+    parse_inline "links-in-dynamic-block.org"
+      {|
+* Note
+#+BEGIN: clocktable :scope file
+https://example.com
+#+END:
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".links | .length") "1");
+  assert_contains
+    (run_ok inline_doc ".links | map(.target)")
+    "https://example.com"
+
+let () =
+  let inline_doc =
+    parse_inline "links-in-quote-block.org"
+      {|
+* Note
+#+BEGIN_QUOTE
+https://example.com
+#+END_QUOTE
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".links | .length") "1");
+  assert_contains
+    (run_ok inline_doc ".links | map(.target)")
+    "https://example.com"
+
+let () =
+  let inline_doc =
     parse_inline "links-custom-abbrev-indented-keyword.org"
       {|
 * Note

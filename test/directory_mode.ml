@@ -1067,6 +1067,62 @@ let () =
 let () =
   with_temp_dir (fun root ->
       ignore
+        (write_file root "links-in-custom-drawer.org"
+           "* Note\n:MYDRAWER:\nhttps://example.com\n:END:\n");
+      let outcome = run_directory ~query:(Some ".links | .length") root in
+      assert_exit outcome Oq.Exit_code.Success;
+      let stdout = require_stdout outcome in
+      assert (extract_counter stdout "candidate_org" = 1);
+      assert (extract_counter stdout "parsed_ok" = 1);
+      assert (extract_counter stdout "parse_failed" = 0);
+      assert_contains stdout "links-in-custom-drawer.org:";
+      assert_contains stdout "  1")
+
+let () =
+  with_temp_dir (fun root ->
+      ignore
+        (write_file root "links-in-center-block.org"
+           "* Note\n#+BEGIN_CENTER\nhttps://example.com\n#+END_CENTER\n");
+      let outcome = run_directory ~query:(Some ".links | .length") root in
+      assert_exit outcome Oq.Exit_code.Success;
+      let stdout = require_stdout outcome in
+      assert (extract_counter stdout "candidate_org" = 1);
+      assert (extract_counter stdout "parsed_ok" = 1);
+      assert (extract_counter stdout "parse_failed" = 0);
+      assert_contains stdout "links-in-center-block.org:";
+      assert_contains stdout "  1")
+
+let () =
+  with_temp_dir (fun root ->
+      ignore
+        (write_file root "links-in-dynamic-block.org"
+           "* Note\n#+BEGIN: clocktable :scope file\nhttps://example.com\n#+END:\n");
+      let outcome = run_directory ~query:(Some ".links | .length") root in
+      assert_exit outcome Oq.Exit_code.Success;
+      let stdout = require_stdout outcome in
+      assert (extract_counter stdout "candidate_org" = 1);
+      assert (extract_counter stdout "parsed_ok" = 1);
+      assert (extract_counter stdout "parse_failed" = 0);
+      assert_contains stdout "links-in-dynamic-block.org:";
+      assert_contains stdout "  1")
+
+let () =
+  with_temp_dir (fun root ->
+      ignore
+        (write_file root "links-in-quote-block.org"
+           "* Note\n#+BEGIN_QUOTE\nhttps://example.com\n#+END_QUOTE\n");
+      let outcome = run_directory ~query:(Some ".links | .length") root in
+      assert_exit outcome Oq.Exit_code.Success;
+      let stdout = require_stdout outcome in
+      assert (extract_counter stdout "candidate_org" = 1);
+      assert (extract_counter stdout "parsed_ok" = 1);
+      assert (extract_counter stdout "parse_failed" = 0);
+      assert_contains stdout "links-in-quote-block.org:";
+      assert_contains stdout "  1")
+
+let () =
+  with_temp_dir (fun root ->
+      ignore
         (write_file root "links-custom-abbrev-indented-keyword.org"
            "* Note\n  #+LINK: gh https://github.com/%s\ngh:ocaml/dune\n");
       let outcome = run_directory ~query:(Some ".links | .length") root in

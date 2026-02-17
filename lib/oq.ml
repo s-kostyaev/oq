@@ -450,9 +450,11 @@ module Org = struct
     String.is_prefix trimmed ~prefix:"#"
     && not (String.is_prefix trimmed ~prefix:"#+")
 
+  let is_keyword_like_line line =
+    String.is_prefix (String.lstrip line) ~prefix:"#+"
+
   let is_indented_keyword_like_line line =
-    not (String.equal line (String.lstrip line))
-    && String.is_prefix (String.lstrip line) ~prefix:"#+"
+    not (String.equal line (String.lstrip line)) && is_keyword_like_line line
 
   let parse_drawer_name line =
     let trimmed = String.lstrip line |> String.rstrip in
@@ -1224,30 +1226,44 @@ module Org = struct
               (match block_state with
               | Open_dynamic _ ->
                   if is_dynamic_block_end line then open_block_state := None
-              | Open_supported _ | Open_opaque _ -> (
+                  else if not (is_keyword_like_line line) then
+                    add_links ~line ~line_no ~heading_id:!current_heading_id
+              | Open_supported supported -> (
                   match parse_block_end line with
                   | Some ending_kind
                     when String.equal ending_kind
                            (open_block_end_token block_state) ->
-                      (match block_state with
-                      | Open_supported supported ->
-                          let source =
-                            make_source_ref ~path ~start_line:supported.start_line
-                              ~end_line:line_no
-                          in
-                          blocks_rev :=
-                            {
-                              kind = supported.kind;
-                              language = supported.language;
-                              heading_id = supported.heading_id;
-                              source;
-                            }
-                            :: !blocks_rev
-                      | Open_opaque _ -> ()
-                      | Open_dynamic _ -> assert false);
+                      let source =
+                        make_source_ref ~path ~start_line:supported.start_line
+                          ~end_line:line_no
+                      in
+                      blocks_rev :=
+                        {
+                          kind = supported.kind;
+                          language = supported.language;
+                          heading_id = supported.heading_id;
+                          source;
+                        }
+                        :: !blocks_rev;
                       open_block_state := None
                   | Some _ -> ()
-                  | None -> ()))
+                  | None -> (
+                      match supported.kind with
+                      | Src | Example -> ()
+                      | Quote | Export ->
+                          if not (is_keyword_like_line line) then
+                            add_links ~line ~line_no
+                              ~heading_id:supported.heading_id))
+              | Open_opaque _ -> (
+                  match parse_block_end line with
+                  | Some ending_kind
+                    when String.equal ending_kind
+                           (open_block_end_token block_state) ->
+                      open_block_state := None
+                  | Some _ -> ()
+                  | None ->
+                      if not (is_keyword_like_line line) then
+                        add_links ~line ~line_no ~heading_id:!current_heading_id))
           | None ->
               (match !open_drawer_state with
               | Some drawer_state ->
@@ -1276,7 +1292,12 @@ module Org = struct
                             properties_rev :=
                               { key; value; heading_id; source } :: !properties_rev
                         | None -> ())
-                    | None -> ())
+                    | None ->
+                        if not (is_keyword_like_line line) then
+                          add_links ~line ~line_no
+                            ~heading_id:drawer_state.heading_id)
+                  else if not (is_keyword_like_line line) then
+                    add_links ~line ~line_no ~heading_id:drawer_state.heading_id
               | None ->
                   if is_table_line line then
                     (match !open_table_state with
