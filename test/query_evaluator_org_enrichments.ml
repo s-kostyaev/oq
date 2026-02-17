@@ -921,6 +921,18 @@ https://example.com
 
 let () =
   let inline_doc =
+    parse_inline "links-in-comment-block.org"
+      {|
+* Note
+#+BEGIN_COMMENT
+https://example.com
+#+END_COMMENT
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".links | .length") "0")
+
+let () =
+  let inline_doc =
     parse_inline "links-in-table.org"
       {|
 * Note

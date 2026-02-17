@@ -1123,6 +1123,20 @@ let () =
 let () =
   with_temp_dir (fun root ->
       ignore
+        (write_file root "links-in-comment-block.org"
+           "* Note\n#+BEGIN_COMMENT\nhttps://example.com\n#+END_COMMENT\n");
+      let outcome = run_directory ~query:(Some ".links | .length") root in
+      assert_exit outcome Oq.Exit_code.Success;
+      let stdout = require_stdout outcome in
+      assert (extract_counter stdout "candidate_org" = 1);
+      assert (extract_counter stdout "parsed_ok" = 1);
+      assert (extract_counter stdout "parse_failed" = 0);
+      assert_contains stdout "links-in-comment-block.org:";
+      assert_contains stdout "  0")
+
+let () =
+  with_temp_dir (fun root ->
+      ignore
         (write_file root "links-in-table.org"
            "* Note\n| Name | URL |\n|------+-----|\n| x | https://example.com |\n");
       let outcome = run_directory ~query:(Some ".links | .length") root in

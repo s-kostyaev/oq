@@ -1254,7 +1254,7 @@ module Org = struct
                           if not (is_keyword_like_line line) then
                             add_links ~line ~line_no
                               ~heading_id:supported.heading_id))
-              | Open_opaque _ -> (
+              | Open_opaque opaque -> (
                   match parse_block_end line with
                   | Some ending_kind
                     when String.equal ending_kind
@@ -1262,7 +1262,10 @@ module Org = struct
                       open_block_state := None
                   | Some _ -> ()
                   | None ->
-                      if not (is_keyword_like_line line) then
+                      if
+                        (not (String.equal opaque.expected_end_token "COMMENT"))
+                        && not (is_keyword_like_line line)
+                      then
                         add_links ~line ~line_no ~heading_id:!current_heading_id))
           | None ->
               (match !open_drawer_state with

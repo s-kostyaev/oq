@@ -100,7 +100,8 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
   - they do not fail parsing,
   - they are not added to `index.blocks`.
 - Link extraction runs inside non-code block bodies (for example `QUOTE`,
-  `CENTER`, dynamic blocks) but remains disabled inside `SRC`/`EXAMPLE`.
+  `CENTER`, dynamic blocks) but remains disabled inside `SRC`/`EXAMPLE`
+  and `COMMENT`.
 - References: `lib/oq.ml:419`, `lib/oq.ml:431`, `lib/oq.ml:463`.
 
 8. Links in text

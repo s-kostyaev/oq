@@ -1173,6 +1173,17 @@ let () =
 
 let () =
   match
+    Oq.Org.parse_string ~path:"links-in-comment-block.org"
+      "* Note\n#+BEGIN_COMMENT\nhttps://example.com\n#+END_COMMENT\n"
+  with
+  | Error err ->
+      failwithf "expected links in comment block parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc -> assert (List.length doc.index.links = 0)
+
+let () =
+  match
     Oq.Org.parse_string ~path:"links-in-table.org"
       "* Note\n| Name | URL |\n|------+-----|\n| x | https://example.com |\n"
   with
