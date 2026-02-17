@@ -34,6 +34,8 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
 - `CLOSED: ...`
 - Stored as `planning_entry` values with `raw_value`.
 - Multiple planning keywords on one line are split correctly into separate values.
+- Planning keywords are recognized only on planning lines
+  (plain text mentioning `SCHEDULED:` does not create planning entries).
 - References: `lib/oq.ml:528`, `lib/oq.ml:705`.
 
 5. Drawers and properties

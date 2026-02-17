@@ -214,6 +214,16 @@ SCHEDULED: <2026-02-18 Wed> DEADLINE: <2026-02-20 Fri>
        "1")
 
 let () =
+  let inline_doc =
+    parse_inline "planning-in-text.org"
+      {|
+* Note
+This sentence mentions SCHEDULED: <2026-02-18 Wed> but is plain text.
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".scheduled | .length") "0")
+
+let () =
   let todo = parse_fixture "fixtures/corpus/todo_workflows.org" in
   assert_contains
     (run_error ~now:"2026-02-17" todo ".headings | .length")

@@ -579,10 +579,18 @@ module Org = struct
     loop 0 []
 
   let parse_planning_on_line line =
+    let trimmed = String.lstrip line in
+    let starts_with_planning_keyword =
+      String.is_prefix trimmed ~prefix:"SCHEDULED:"
+      || String.is_prefix trimmed ~prefix:"DEADLINE:"
+      || String.is_prefix trimmed ~prefix:"CLOSED:"
+    in
+    if not starts_with_planning_keyword then []
+    else
     let markers =
       [ (Scheduled, "SCHEDULED:"); (Deadline, "DEADLINE:"); (Closed, "CLOSED:") ]
       |> List.filter_map ~f:(fun (kind, pattern) ->
-             Option.map (String.substr_index line ~pattern) ~f:(fun index ->
+             Option.map (String.substr_index trimmed ~pattern) ~f:(fun index ->
                  (kind, index, String.length pattern)))
       |> List.sort ~compare:(fun (_, left, _) (_, right, _) ->
              Int.compare left right)
@@ -594,12 +602,12 @@ module Org = struct
           let value_end =
             match rest with
             | (_, next_index, _) :: _ -> next_index
-            | [] -> String.length line
+            | [] -> String.length trimmed
           in
           if value_end <= value_start then collect acc rest
           else
             let value =
-              String.sub line ~pos:value_start ~len:(value_end - value_start)
+              String.sub trimmed ~pos:value_start ~len:(value_end - value_start)
               |> String.strip
             in
             if String.is_empty value then collect acc rest

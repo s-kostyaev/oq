@@ -284,6 +284,17 @@ let () =
            "[2026-02-21 Sat]")
 
 let () =
+  match
+    Oq.Org.parse_string ~path:"planning-in-text.org"
+      "* Note\nThis sentence mentions SCHEDULED: <2026-02-18 Wed> but is plain text.\n"
+  with
+  | Error err ->
+      failwithf "expected planning-in-text parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc -> assert (List.is_empty doc.index.planning)
+
+let () =
   let bytes = Bytes.create 1 in
   Bytes.set bytes 0 (Char.of_int_exn 0xFF);
   let invalid = Bytes.to_string bytes in
