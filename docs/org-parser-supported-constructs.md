@@ -59,8 +59,8 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
 - Custom `:NAME:` drawers are recognized conservatively when a matching `:END:`
   appears later in the file; this prevents false opens on isolated plain tokens
   while keeping drawer internals opaque to block/link parsing.
-- Drawer markers must start at column 1; indented `:NAME:` lines are treated as
-  regular text (prevents false drawer opens on indented content).
+- Drawer markers may be indented with leading whitespace (for example inside
+  list context), matching Org behavior.
 - Drawer closing marker `:END:` is matched case-insensitively and may be
   indented with leading whitespace once a drawer is open.
 - `.property("KEY")` matching is case-insensitive for property names.

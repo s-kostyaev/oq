@@ -449,7 +449,7 @@ module Org = struct
     && not (String.is_prefix trimmed ~prefix:"#+")
 
   let parse_drawer_name line =
-    let trimmed = String.rstrip line in
+    let trimmed = String.lstrip line |> String.rstrip in
     let len = String.length trimmed in
     let is_valid_drawer_char = function
       | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_' | '-' -> true
