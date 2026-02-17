@@ -300,6 +300,21 @@ mailto:user@example.com
 
 let () =
   let inline_doc =
+    parse_inline "links-id-custom-id.org"
+      {|
+* Note
+id:task-123
+custom-id:release-notes
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".links | .length") "2");
+  assert_contains (run_ok inline_doc ".links | map(.target)") "id:task-123";
+  assert_contains
+    (run_ok inline_doc ".links | map(.target)")
+    "custom-id:release-notes"
+
+let () =
+  let inline_doc =
     parse_inline "links-bracket.org"
       {|
 * Links

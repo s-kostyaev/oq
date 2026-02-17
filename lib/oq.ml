@@ -641,6 +641,8 @@ module Org = struct
       let lower = String.lowercase token in
       String.is_prefix lower ~prefix:"file:"
       || String.is_prefix lower ~prefix:"mailto:"
+      || String.is_prefix lower ~prefix:"id:"
+      || String.is_prefix lower ~prefix:"custom-id:"
     in
     whitespace_tokens line
     |> List.filter_map ~f:(fun token ->

@@ -441,6 +441,20 @@ let () =
 let () =
   with_temp_dir (fun root ->
       ignore
+        (write_file root "links-id-custom-id.org"
+           "* Note\nid:task-123\ncustom-id:release-notes\n");
+      let outcome = run_directory ~query:(Some ".links | .length") root in
+      assert_exit outcome Oq.Exit_code.Success;
+      let stdout = require_stdout outcome in
+      assert (extract_counter stdout "candidate_org" = 1);
+      assert (extract_counter stdout "parsed_ok" = 1);
+      assert (extract_counter stdout "parse_failed" = 0);
+      assert_contains stdout "links-id-custom-id.org:";
+      assert_contains stdout "  2")
+
+let () =
+  with_temp_dir (fun root ->
+      ignore
         (write_file root "links-bracket.org"
            "* Links\n[[https://example.com/docs][Example Docs]]\n");
       let outcome = run_directory ~query:(Some ".links | .length") root in

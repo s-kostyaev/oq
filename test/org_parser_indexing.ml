@@ -513,6 +513,24 @@ let () =
 
 let () =
   match
+    Oq.Org.parse_string ~path:"links-id-custom-id.org"
+      "* Note\nid:task-123\ncustom-id:release-notes\n"
+  with
+  | Error err ->
+      failwithf "expected id/custom-id plain links parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.links = 2);
+      assert
+        (List.exists doc.index.links ~f:(fun link ->
+             String.equal link.target "id:task-123"));
+      assert
+        (List.exists doc.index.links ~f:(fun link ->
+             String.equal link.target "custom-id:release-notes"))
+
+let () =
+  match
     Oq.Org.parse_string ~path:"links-bracket.org"
       "* Links\n[[https://example.com/docs][Example Docs]]\n"
   with
