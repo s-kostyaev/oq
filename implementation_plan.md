@@ -121,7 +121,7 @@ Source PRD: `/Users/sergeykostyaev/ocaml/oq/docs/PRD-oq-v1.md` (Final v1.0, 2026
 1. Profile and optimize hot paths (`.search`, directory traversal, rendering).
 2. Set CI gates:
    lint + unit + golden + integration + benchmark checks.
-3. Add agent E2E test suite:
+3. [DONE] Add agent E2E test suite:
    scripted scenarios that emulate iterative agent usage and validate stable outputs between runs.
 4. Build release flow:
    GitHub binaries first, then `opam`, then Homebrew.
