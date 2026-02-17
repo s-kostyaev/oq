@@ -87,7 +87,7 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
   (for example `https://...`, `HTTPS://...`, `ftp://...`).
 - Plain `file:...` and `mailto:...` links are also recognized.
 - Plain `id:...` and `custom-id:...` links are also recognized.
-- Plain `news:...`, `shell:...`, `elisp:...`, `help:...`, `info:...`, and `man:...` links are also recognized.
+- Plain `news:...`, `shell:...`, `elisp:...`, `help:...`, `info:...`, `man:...`, and `woman:...` links are also recognized.
 - Plain `doi:...` links are also recognized.
 - Plain `attachment:...` links are also recognized.
 - Plain `coderef:...` links are also recognized.

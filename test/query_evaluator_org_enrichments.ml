@@ -389,6 +389,19 @@ shell:echo hello
 
 let () =
   let inline_doc =
+    parse_inline "links-man-woman.org"
+      {|
+* Note
+man:printf
+woman:printf
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".links | .length") "2");
+  assert_contains (run_ok inline_doc ".links | map(.target)") "man:printf";
+  assert_contains (run_ok inline_doc ".links | map(.target)") "woman:printf"
+
+let () =
+  let inline_doc =
     parse_inline "links-doi.org"
       {|
 * Note
