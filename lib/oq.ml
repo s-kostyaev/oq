@@ -3190,7 +3190,9 @@ module Directory = struct
     String.length name > 0 && Char.equal name.[0] '.'
 
   let has_org_extension path =
-    String.is_suffix (String.lowercase path) ~suffix:".org"
+    let lower = String.lowercase path in
+    String.is_suffix lower ~suffix:".org"
+    || String.is_suffix lower ~suffix:".org_archive"
 
   let is_org_file name = has_org_extension name
   let normalize_relative_path = Ordering.normalize_relative_path
