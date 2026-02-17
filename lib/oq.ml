@@ -1663,6 +1663,7 @@ module Eval = struct
     type t =
       | Document of Org.t
       | Heading of Org.heading
+      | Tree_heading of Org.heading
       | Section of section
       | Property of Org.property
       | Planning of Org.planning_entry
@@ -1878,6 +1879,7 @@ module Eval = struct
   let type_name = function
     | Value.Document _ -> "document"
     | Value.Heading _ -> "heading"
+    | Value.Tree_heading _ -> "heading"
     | Value.Section _ -> "section"
     | Value.Property _ -> "property"
     | Value.Planning _ -> "planning"
@@ -2064,6 +2066,7 @@ module Eval = struct
     in
     match value with
     | Value.Heading heading -> heading_field_value runtime heading field
+    | Value.Tree_heading heading -> heading_field_value runtime heading field
     | Value.Section section -> section_field_value section
     | Value.Property property -> property_field_value property
     | Value.Planning planning -> planning_field_value planning
@@ -2299,7 +2302,8 @@ module Eval = struct
                   mode
           | _ -> failf ".%s expects at most one argument" name
         in
-        Value.List (List.map selected ~f:(fun heading -> Value.Heading heading))
+        Value.List
+          (List.map selected ~f:(fun heading -> Value.Tree_heading heading))
     | "headings" ->
         let headings = doc.index.headings in
         let selected =
@@ -2495,6 +2499,8 @@ module Eval = struct
           | Value.Document value ->
               Some (String.concat ~sep:"\n" (Array.to_list value.Org.lines))
           | Value.Heading heading -> Some (Runtime.section_text runtime heading)
+          | Value.Tree_heading heading ->
+              Some (Runtime.section_text runtime heading)
           | Value.Section section -> Some (Runtime.section_text runtime section.heading)
           | Value.Property property ->
               Some
@@ -2513,6 +2519,7 @@ module Eval = struct
         match current with
         | Value.Document _
         | Value.Heading _
+        | Value.Tree_heading _
         | Value.Section _
         | Value.Property _
         | Value.Planning _
@@ -2625,6 +2632,11 @@ module Eval = struct
     | Value.Heading heading ->
         sprintf "%s (lines %d:%d)" heading.title
           heading.section_source.span.start_line heading.section_source.span.end_line
+    | Value.Tree_heading heading ->
+        sprintf "%s %s (lines %d:%d)"
+          (String.make heading.level '*')
+          heading.title heading.section_source.span.start_line
+          heading.section_source.span.end_line
     | Value.Section section ->
         sprintf "%s (lines %d:%d)" section.heading.title
           section.source.span.start_line section.source.span.end_line

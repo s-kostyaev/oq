@@ -5,6 +5,12 @@ QUERY: .headings | .length
 QUERY: .tree('full') | .length
 4
 ---
+QUERY: .tree('full')
+* Projects (lines 3:13)
+** Inbox (lines 6:8)
+** Inbox (lines 9:13)
+*** Follow-up (lines 12:13)
+---
 QUERY: .section('Inbox', 6:8) | .text
 ** Inbox
 First inbox content to extract in workflow tests.
