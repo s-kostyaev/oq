@@ -1,6 +1,6 @@
 ---
 name: oq-org-query
-description: Query Org-mode files and directories with oq using deterministic, structure-first, low-token workflows. Use when an agent needs to inspect .org content, locate sections/tasks/metadata, extract only scoped text, or recover from oq query and parse errors.
+description: Query Org-mode files and directories with oq using deterministic, structure-first, low-token workflows. Use when an agent needs to inspect .org content, locate sections/tasks/metadata, extract only scoped text.
 ---
 
 # Query Org Files with `oq`
