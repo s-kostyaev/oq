@@ -507,6 +507,23 @@ vm:inbox
 
 let () =
   let inline_doc =
+    parse_inline "links-vm-imap.org"
+      {|
+* Note
+vm-imap:work:Inbox
+vm-imap:work:Inbox#123
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".links | .length") "2");
+  assert_contains
+    (run_ok inline_doc ".links | map(.target)")
+    "vm-imap:work:Inbox";
+  assert_contains
+    (run_ok inline_doc ".links | map(.target)")
+    "vm-imap:work:Inbox#123"
+
+let () =
+  let inline_doc =
     parse_inline "links-bracket.org"
       {|
 * Links

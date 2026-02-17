@@ -678,6 +678,7 @@ module Org = struct
       || has_prefix "mhe:"
       || has_prefix "wl:"
       || has_prefix "vm:"
+      || has_prefix "vm-imap:"
     in
     let is_plain_file_path token =
       let has_prefix prefix =

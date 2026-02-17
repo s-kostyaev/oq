@@ -779,6 +779,24 @@ let () =
 
 let () =
   match
+    Oq.Org.parse_string ~path:"links-vm-imap.org"
+      "* Note\nvm-imap:work:Inbox\nvm-imap:work:Inbox#123\n"
+  with
+  | Error err ->
+      failwithf "expected vm-imap plain links parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.links = 2);
+      assert
+        (List.exists doc.index.links ~f:(fun link ->
+             String.equal link.target "vm-imap:work:Inbox"));
+      assert
+        (List.exists doc.index.links ~f:(fun link ->
+             String.equal link.target "vm-imap:work:Inbox#123"))
+
+let () =
+  match
     Oq.Org.parse_string ~path:"links-bracket.org"
       "* Links\n[[https://example.com/docs][Example Docs]]\n"
   with
