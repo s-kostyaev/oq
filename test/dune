@@ -73,3 +73,10 @@
   (glob_files_rec fixtures/*.org))
  (preprocess
   (pps ppx_jane)))
+
+(test
+ (name directory_mode)
+ (modules directory_mode)
+ (libraries oq)
+ (preprocess
+  (pps ppx_jane)))

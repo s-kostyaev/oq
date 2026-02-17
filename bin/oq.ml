@@ -1,66 +1,63 @@
 open Core
 open Cmdliner
 
-let error_class_conv =
-  let parse = function
-    | "query" -> Ok Oq.Exit_code.Query_or_usage_error
-    | "io" -> Ok Oq.Exit_code.Io_or_permission_error
-    | "parse" -> Ok Oq.Exit_code.Parse_coverage_error
-    | other ->
-        Error
-          (`Msg
-            (sprintf
-               "unsupported error class %S (supported: query|io|parse)"
-               other))
+let run strict now tz input_path query =
+  let request : Oq.Cli.request =
+    { input_path; query; strict; now; tz }
   in
-  let print formatter code =
-    let text =
-      match code with
-      | Oq.Exit_code.Query_or_usage_error -> "query"
-      | Oq.Exit_code.Io_or_permission_error -> "io"
-      | Oq.Exit_code.Parse_coverage_error -> "parse"
-      | Oq.Exit_code.Success -> "success"
-    in
-    Format.fprintf formatter "%s" text
-  in
-  Arg.conv (parse, print)
+  let outcome = Oq.Cli.execute request in
+  Option.iter outcome.stdout ~f:Stdio.print_endline;
+  List.iter outcome.stderr_lines ~f:(fun line -> Stdio.eprintf "%s\n" line);
+  Stdlib.exit (Oq.Exit_code.to_int outcome.exit_code)
 
-let run warning error_class message =
-  Option.iter warning ~f:(fun text ->
-      Stdio.eprintf "%s\n" (Oq.Diagnostic.warning text));
-  match error_class with
-  | Some code ->
-      Stdio.eprintf "%s\n" (Oq.Diagnostic.error message);
-      Stdlib.exit (Oq.Exit_code.to_int code)
-  | None ->
-      Stdio.print_endline (Oq.Cli.run ())
+let strict_arg =
+  Arg.(
+    value
+    & flag
+    & info [ "strict" ]
+        ~doc:
+          "In directory mode, return parse coverage failure (exit 3) when any \
+           candidate .org file fails to parse.")
 
-let warning_arg =
+let now_arg =
   Arg.(
     value
     & opt (some string) None
-    & info [ "warning" ] ~docv:"MESSAGE"
-        ~doc:"Emit a canonical warning line to stderr before normal output.")
-
-let error_class_arg =
-  Arg.(
-    value
-    & opt (some error_class_conv) None
-    & info [ "error-class" ] ~docv:"CLASS"
+    & info [ "now" ] ~docv:"RFC3339"
         ~doc:
-          "Simulate a classified failure with exit code mapping (query|io|parse).")
+          "Reference datetime for deterministic relative date evaluation \
+           (requires explicit timezone offset).")
 
-let message_arg =
+let tz_arg =
   Arg.(
     value
-    & opt string "operation failed"
-    & info [ "message" ] ~docv:"TEXT"
-        ~doc:"Message used for canonical Error output.")
+    & opt (some string) None
+    & info [ "tz" ] ~docv:"IANA_TZ"
+        ~doc:
+          "Reference timezone for deterministic relative date evaluation \
+           (example: America/Los_Angeles).")
+
+let input_path_arg =
+  Arg.(
+    required
+    & pos 0 (some string) None
+    & info [] ~docv:"FILE_OR_DIR"
+        ~doc:"Input .org file path or directory path.")
+
+let query_arg =
+  Arg.(
+    value
+    & pos 1 (some string) None
+    & info [] ~docv:"QUERY"
+        ~doc:"Optional query pipeline (for example: .headings | .length).")
 
 let cmd =
-  let doc = "agent-first org query CLI (bootstrap command contract)" in
+  let doc = "agent-first org query CLI" in
   let info = Cmd.info "oq" ~doc in
-  let term = Term.(const run $ warning_arg $ error_class_arg $ message_arg) in
+  let term =
+    Term.(
+      const run $ strict_arg $ now_arg $ tz_arg $ input_path_arg $ query_arg)
+  in
   Cmd.v info term
 
 let () = Stdlib.exit (Cmd.eval cmd)

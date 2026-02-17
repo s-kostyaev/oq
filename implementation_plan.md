@@ -102,18 +102,18 @@ Source PRD: `/Users/sergeykostyaev/ocaml/oq/docs/PRD-oq-v1.md` (Final v1.0, 2026
 5. [DONE] Definition of Done:
    deterministic boundary tests around midnight/week start and overdue behavior pass.
 
-## 7. Directory Mode and Deterministic Ordering (M3-M4, 4-5 days)
+## 7. Directory Mode and Deterministic Ordering (M3-M4, 4-5 days) [DONE]
 
-1. Implement traversal rules:
+1. [DONE] Implement traversal rules:
    include only `.org`, skip hidden paths, skip symlinks.
-2. Implement parse summary counters and invariant:
+2. [DONE] Implement parse summary counters and invariant:
    `candidate_org = parsed_ok + parse_failed`.
-3. Implement canonical multi-file ordering:
+3. [DONE] Implement canonical multi-file ordering:
    normalized relative path (`\` -> `/`, Unicode NFC), then `start_line`, then `end_line`.
-4. Implement parse-failure behavior:
+4. [DONE] Implement parse-failure behavior:
    graceful degrade by default, `--strict` returns exit code `3` on any parse failure.
-5. Add large-corpus regression tests to keep agent behavior stable under scale (hundreds of files).
-6. Definition of Done:
+5. [DONE] Add large-corpus regression tests to keep agent behavior stable under scale (hundreds of files).
+6. [DONE] Definition of Done:
    integration tests for zero-candidate, partial-failure, all-failed, and strict-mode paths pass.
 
 ## 8. Hardening, Performance, and Release (M4, 3-5 days)

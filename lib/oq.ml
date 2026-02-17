@@ -2640,6 +2640,383 @@ module Eval = struct
     | Error (Eval_error message) -> Error message
 end
 
+module Directory = struct
+  type counters = {
+    candidate_org : int;
+    parsed_ok : int;
+    parse_failed : int;
+    skipped_hidden : int;
+    skipped_symlink : int;
+  }
+
+  type parsed_doc = {
+    relative_path : string;
+    doc : Org.t;
+  }
+
+  type parse_failure = {
+    relative_path : string;
+    reason : Diagnostic.parse_reason;
+  }
+
+  type t = {
+    root_path : string;
+    counters : counters;
+    parsed_docs : parsed_doc list;
+    parse_failures : parse_failure list;
+  }
+
+  exception Scan_io_error of string
+
+  let is_hidden_name name =
+    String.length name > 0 && Char.equal name.[0] '.'
+
+  let is_org_file name = String.is_suffix name ~suffix:".org"
+  let normalize_relative_path = Ordering.normalize_relative_path
+
+  let compare_relative_path left right =
+    String.compare
+      (normalize_relative_path left)
+      (normalize_relative_path right)
+
+  let sort_parsed_docs (docs : parsed_doc list) : parsed_doc list =
+    List.sort docs ~compare:(fun (left : parsed_doc) (right : parsed_doc) ->
+        compare_relative_path left.relative_path right.relative_path)
+
+  let sort_parse_failures (failures : parse_failure list) : parse_failure list =
+    List.sort failures ~compare:(fun (left : parse_failure) (right : parse_failure) ->
+        compare_relative_path left.relative_path right.relative_path)
+
+  let io_errorf fmt =
+    Printf.ksprintf (fun message -> raise (Scan_io_error message)) fmt
+
+  let scan root_path =
+    try
+      let counters =
+        ref
+          {
+            candidate_org = 0;
+            parsed_ok = 0;
+            parse_failed = 0;
+            skipped_hidden = 0;
+            skipped_symlink = 0;
+          }
+      in
+      let parsed_docs_rev = ref [] in
+      let parse_failures_rev = ref [] in
+
+      let incr_counter f =
+        counters :=
+          {
+            candidate_org = f !counters.candidate_org;
+            parsed_ok = !counters.parsed_ok;
+            parse_failed = !counters.parse_failed;
+            skipped_hidden = !counters.skipped_hidden;
+            skipped_symlink = !counters.skipped_symlink;
+          }
+      in
+      let incr_parsed_ok () =
+        counters := { !counters with parsed_ok = !counters.parsed_ok + 1 }
+      in
+      let incr_parse_failed () =
+        counters := { !counters with parse_failed = !counters.parse_failed + 1 }
+      in
+      let incr_skipped_hidden () =
+        counters := { !counters with skipped_hidden = !counters.skipped_hidden + 1 }
+      in
+      let incr_skipped_symlink () =
+        counters :=
+          { !counters with skipped_symlink = !counters.skipped_symlink + 1 }
+      in
+      let incr_candidate_org () =
+        incr_counter (fun candidate_org -> candidate_org + 1)
+      in
+
+      let read_all path =
+        try In_channel.read_all path
+        with
+        | Sys_error message -> io_errorf "failed to read %s: %s" path message
+      in
+
+      let rec walk ~absolute_dir ~relative_dir =
+        let names =
+          try Stdlib.Sys.readdir absolute_dir |> Array.to_list
+          with
+          | Sys_error message ->
+              io_errorf "failed to read directory %s: %s" absolute_dir message
+        in
+        let names = List.sort names ~compare:String.compare in
+        List.iter names ~f:(fun name ->
+            if String.equal name "." || String.equal name ".." then ()
+            else if is_hidden_name name then incr_skipped_hidden ()
+            else
+              let absolute_path = Filename.concat absolute_dir name in
+              let relative_path =
+                if String.is_empty relative_dir then name
+                else relative_dir ^ "/" ^ name
+              in
+              let file_kind =
+                try (Caml_unix.lstat absolute_path).st_kind
+                with
+                | Caml_unix.Unix_error (error, _, _) ->
+                    io_errorf "failed to stat %s: %s" absolute_path
+                      (Caml_unix.error_message error)
+              in
+              match file_kind with
+              | Caml_unix.S_LNK -> incr_skipped_symlink ()
+              | Caml_unix.S_DIR ->
+                  walk ~absolute_dir:absolute_path ~relative_dir:relative_path
+              | Caml_unix.S_REG when is_org_file name ->
+                  incr_candidate_org ();
+                  let normalized_relative_path =
+                    normalize_relative_path relative_path
+                  in
+                  let content = read_all absolute_path in
+                  (match Org.parse_string ~path:normalized_relative_path content with
+                  | Ok doc ->
+                      incr_parsed_ok ();
+                      parsed_docs_rev :=
+                        { relative_path = normalized_relative_path; doc }
+                        :: !parsed_docs_rev
+                  | Error parse_error ->
+                      incr_parse_failed ();
+                      parse_failures_rev :=
+                        {
+                          relative_path = normalized_relative_path;
+                          reason = parse_error.reason;
+                        }
+                        :: !parse_failures_rev)
+              | Caml_unix.S_REG -> ()
+              | Caml_unix.S_BLK -> ()
+              | Caml_unix.S_CHR -> ()
+              | Caml_unix.S_FIFO -> ()
+              | Caml_unix.S_SOCK -> ())
+      in
+
+      walk ~absolute_dir:root_path ~relative_dir:"";
+
+      let parsed_docs = List.rev !parsed_docs_rev |> sort_parsed_docs in
+      let parse_failures =
+        List.rev !parse_failures_rev |> sort_parse_failures
+      in
+      Ok
+        {
+          root_path;
+          counters = !counters;
+          parsed_docs;
+          parse_failures;
+        }
+    with
+    | Scan_io_error message -> Error message
+end
+
 module Cli = struct
-  let run () = "oq: not implemented"
+  type request = {
+    input_path : string;
+    query : string option;
+    strict : bool;
+    now : string option;
+    tz : string option;
+  }
+
+  type outcome = {
+    stdout : string option;
+    stderr_lines : string list;
+    exit_code : Exit_code.t;
+  }
+
+  let run () = "oq: ready"
+
+  let make_outcome ?stdout ?(stderr_lines = []) exit_code =
+    { stdout; stderr_lines; exit_code }
+
+  let ensure_error_prefix message =
+    if String.is_prefix message ~prefix:"Error:" then message
+    else Diagnostic.error message
+
+  let render_file_summary (doc : Org.t) =
+    String.concat ~sep:"\n"
+      [
+        sprintf "path=%s" doc.path;
+        sprintf "headings=%d" (List.length doc.index.headings);
+        sprintf "todos=%d" (List.length doc.index.todos);
+        sprintf "lines=%d" doc.line_count;
+      ]
+
+  let render_directory_summary (counters : Directory.counters) =
+    String.concat ~sep:"\n"
+      [
+        sprintf "candidate_org=%d" counters.candidate_org;
+        sprintf "parsed_ok=%d" counters.parsed_ok;
+        sprintf "parse_failed=%d" counters.parse_failed;
+        sprintf "skipped_hidden=%d" counters.skipped_hidden;
+        sprintf "skipped_symlink=%d" counters.skipped_symlink;
+      ]
+
+  let indent_block text =
+    String.split_lines text |> List.map ~f:(fun line -> "  " ^ line)
+    |> String.concat ~sep:"\n"
+
+  let render_group ~relative_path ~text =
+    sprintf "%s:\n%s" relative_path (indent_block text)
+
+  let render_directory_output ~counters ~grouped_results =
+    let summary = render_directory_summary counters in
+    match grouped_results with
+    | [] -> summary
+    | _ -> summary ^ "\n\n" ^ String.concat ~sep:"\n\n" grouped_results
+
+  let run_query ?now ?tz ~(doc : Org.t) query =
+    Eval.run_text ?now ?tz ~doc query
+
+  let parse_single_file path =
+    try
+      let content = In_channel.read_all path in
+      Ok (Org.parse_string ~path:(Ordering.normalize_relative_path path) content)
+    with
+    | Sys_error message -> Error message
+
+  let run_file_mode request =
+    match parse_single_file request.input_path with
+    | Error message ->
+        make_outcome Exit_code.Io_or_permission_error
+          ~stderr_lines:[ Diagnostic.error message ]
+    | Ok (Error parse_error) ->
+        let message =
+          sprintf "failed to parse %s: %s" request.input_path
+            (Diagnostic.parse_reason_to_string parse_error.reason)
+        in
+        make_outcome Exit_code.Parse_coverage_error
+          ~stderr_lines:[ Diagnostic.error message ]
+    | Ok (Ok doc) -> (
+        match request.query with
+        | None ->
+            make_outcome Exit_code.Success ~stdout:(render_file_summary doc)
+        | Some query -> (
+            match run_query ?now:request.now ?tz:request.tz ~doc query with
+            | Ok text -> make_outcome Exit_code.Success ~stdout:text
+            | Error message ->
+                make_outcome Exit_code.Query_or_usage_error
+                  ~stderr_lines:[ ensure_error_prefix message ]))
+
+  let run_directory_mode request =
+    match Directory.scan request.input_path with
+    | Error message ->
+        make_outcome Exit_code.Io_or_permission_error
+          ~stderr_lines:[ Diagnostic.error message ]
+    | Ok directory ->
+        let warnings =
+          List.map directory.parse_failures ~f:(fun failure ->
+              Diagnostic.parse_warning ~path:failure.relative_path
+                ~reason:failure.reason)
+        in
+        let summary = render_directory_summary directory.counters in
+        if
+          directory.counters.candidate_org
+          <> directory.counters.parsed_ok + directory.counters.parse_failed
+        then
+          make_outcome Exit_code.Parse_coverage_error
+            ~stdout:summary
+            ~stderr_lines:
+              (warnings
+              @ [ Diagnostic.error "internal invariant failure: candidate_org mismatch" ])
+        else if Int.equal directory.counters.candidate_org 0 then
+          make_outcome Exit_code.Query_or_usage_error
+            ~stdout:summary
+            ~stderr_lines:
+              (warnings
+              @ [
+                  Diagnostic.error
+                    "no candidate .org files found after hidden/symlink filters";
+                ])
+        else if request.strict && directory.counters.parse_failed > 0 then
+          make_outcome Exit_code.Parse_coverage_error
+            ~stdout:summary
+            ~stderr_lines:
+              (warnings
+              @ [ Diagnostic.error "strict mode failed: at least one .org file did not parse" ])
+        else if Int.equal directory.counters.parsed_ok 0 then
+          make_outcome Exit_code.Parse_coverage_error
+            ~stdout:summary
+            ~stderr_lines:
+              (warnings
+              @ [
+                  Diagnostic.error
+                    "parse coverage failure: zero candidate .org files parsed successfully";
+                ])
+        else
+          match request.query with
+          | None -> make_outcome Exit_code.Success ~stdout:summary ~stderr_lines:warnings
+          | Some query ->
+              let rec eval_docs grouped = function
+                | [] -> Ok (List.rev grouped)
+                | { Directory.relative_path; doc } :: rest -> (
+                    match run_query ?now:request.now ?tz:request.tz ~doc query with
+                    | Error message ->
+                        Error
+                          (sprintf "query failed in %s: %s" relative_path
+                             (String.strip message))
+                    | Ok text ->
+                        if String.is_empty (String.strip text) then
+                          eval_docs grouped rest
+                        else
+                          let rendered_group = render_group ~relative_path ~text in
+                          eval_docs (rendered_group :: grouped) rest)
+              in
+              (match eval_docs [] directory.parsed_docs with
+              | Error message ->
+                  make_outcome Exit_code.Query_or_usage_error
+                    ~stdout:summary
+                    ~stderr_lines:(warnings @ [ ensure_error_prefix message ])
+              | Ok grouped_results ->
+                  let stdout =
+                    render_directory_output ~counters:directory.counters
+                      ~grouped_results
+                  in
+                  make_outcome Exit_code.Success ~stdout ~stderr_lines:warnings)
+
+  let execute request =
+    let stat_result =
+      try Ok (Caml_unix.lstat request.input_path)
+      with
+      | Caml_unix.Unix_error (error, _, _) ->
+          Error
+            (sprintf "unable to access %s: %s" request.input_path
+               (Caml_unix.error_message error))
+    in
+    match stat_result with
+    | Error message ->
+        make_outcome Exit_code.Io_or_permission_error
+          ~stderr_lines:[ Diagnostic.error message ]
+    | Ok stat -> (
+        match stat.st_kind with
+        | Caml_unix.S_DIR -> run_directory_mode request
+        | Caml_unix.S_REG ->
+            if String.is_suffix request.input_path ~suffix:".org" then
+              run_file_mode request
+            else
+              make_outcome Exit_code.Query_or_usage_error
+                ~stderr_lines:
+                  [
+                    Diagnostic.error
+                      (sprintf "unsupported input file %S (expected .org)"
+                         request.input_path);
+                  ]
+        | Caml_unix.S_LNK ->
+            make_outcome Exit_code.Query_or_usage_error
+              ~stderr_lines:
+                [
+                  Diagnostic.error
+                    (sprintf
+                       "input path %S is a symlink and is skipped by traversal \
+                        rules"
+                       request.input_path);
+                ]
+        | _ ->
+            make_outcome Exit_code.Query_or_usage_error
+              ~stderr_lines:
+                [
+                  Diagnostic.error
+                    (sprintf "unsupported input path kind for %S" request.input_path);
+                ])
 end
