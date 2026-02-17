@@ -1,6 +1,6 @@
 # oq
 
-`oq` is an agent-first CLI for querying Org files and directories with deterministic output.
+`oq` is an agent-first CLI for querying Org files with deterministic output.
 
 ## Features
 
