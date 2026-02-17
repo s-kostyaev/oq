@@ -55,6 +55,20 @@ let () =
   assert (List.length todo.index.planning = 4)
 
 let () =
+  match
+    Oq.Org.parse_string ~path:"todo-fast-keys.org"
+      "#+TODO: TODO(t) NEXT(n) WAIT(w@/!) | DONE(d!) CANCELED(c@)\n* TODO task one\n* DONE task two\n"
+  with
+  | Error err ->
+      failwithf "expected todo fast-keys parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (Poly.equal doc.todo_config.open_states [ "TODO"; "NEXT"; "WAIT" ]);
+      assert (Poly.equal doc.todo_config.done_states [ "DONE"; "CANCELED" ]);
+      assert (List.length doc.index.todos = 2)
+
+let () =
   let props = parse_fixture "fixtures/corpus/properties_drawers.org" in
   assert (List.length props.index.properties = 4);
   assert (List.length props.index.drawers = 2);

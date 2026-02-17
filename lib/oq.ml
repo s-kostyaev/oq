@@ -112,10 +112,23 @@ module Org = struct
       List.mem config.open_states state ~equal:String.equal
       || List.mem config.done_states state ~equal:String.equal
 
+    let normalize_state_token raw_token =
+      let token = String.strip raw_token in
+      if String.is_empty token then None
+      else
+        let core =
+          match String.substr_index token ~pattern:"(" with
+          | Some index when index > 0 -> String.prefix token index
+          | Some _ -> ""
+          | None -> token
+        in
+        let normalized = String.strip core in
+        if String.is_empty normalized then None else Some normalized
+
     let parse_from_keyword_value value =
       let tokens text =
         String.split_on_chars (String.strip text) ~on:[ ' '; '\t'; '\r'; '\n' ]
-        |> List.filter ~f:(fun token -> not (String.is_empty token))
+        |> List.filter_map ~f:normalize_state_token
       in
       match String.lsplit2 value ~on:'|' with
       | Some (open_text, done_text) ->
