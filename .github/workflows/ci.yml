@@ -23,29 +23,29 @@ jobs:
         run: opam install . --deps-only --with-test --yes
 
       - name: Build
-        run: dune build
+        run: opam exec -- dune build
 
       - name: Lint Gate
         run: opam lint oq.opam
 
       - name: Unit Gate
         run: |
-          dune exec test/smoke.exe
-          dune exec test/contract_smoke.exe
-          dune exec test/fixture_corpus.exe
-          dune exec test/org_parser_indexing.exe
-          dune exec test/query_parser.exe
+          opam exec -- dune exec test/smoke.exe
+          opam exec -- dune exec test/contract_smoke.exe
+          opam exec -- dune exec test/fixture_corpus.exe
+          opam exec -- dune exec test/org_parser_indexing.exe
+          opam exec -- dune exec test/query_parser.exe
 
       - name: Golden Gate
         run: |
-          dune exec test/diagnostic_golden.exe
-          dune exec test/query_evaluator_core.exe
+          opam exec -- dune exec test/diagnostic_golden.exe
+          opam exec -- dune exec test/query_evaluator_core.exe
 
       - name: Integration Gate
         run: |
-          dune exec test/query_evaluator_org_enrichments.exe
-          dune exec test/directory_mode.exe
-          dune exec test/agent_workflow_scenarios.exe
+          opam exec -- dune exec test/query_evaluator_org_enrichments.exe
+          opam exec -- dune exec test/directory_mode.exe
+          opam exec -- dune exec test/agent_workflow_scenarios.exe
 
       - name: Benchmark Gate
-        run: dune exec bench/benchmark_check.exe
+        run: opam exec -- dune exec bench/benchmark_check.exe
