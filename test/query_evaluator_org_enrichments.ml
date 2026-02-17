@@ -413,6 +413,17 @@ attachment:report.pdf
 
 let () =
   let inline_doc =
+    parse_inline "links-coderef.org"
+      {|
+* Note
+coderef:label
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".links | .length") "1");
+  assert_contains (run_ok inline_doc ".links | map(.target)") "coderef:label"
+
+let () =
+  let inline_doc =
     parse_inline "links-bracket.org"
       {|
 * Links

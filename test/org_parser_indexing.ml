@@ -658,6 +658,22 @@ let () =
 
 let () =
   match
+    Oq.Org.parse_string ~path:"links-coderef.org"
+      "* Note\ncoderef:label\n"
+  with
+  | Error err ->
+      failwithf "expected coderef plain link parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.links = 1);
+      assert
+        (String.equal
+           (List.hd_exn doc.index.links).target
+           "coderef:label")
+
+let () =
+  match
     Oq.Org.parse_string ~path:"links-bracket.org"
       "* Links\n[[https://example.com/docs][Example Docs]]\n"
   with
