@@ -46,14 +46,24 @@ let assert_contains text needle =
   assert (String.is_substring text ~substring:needle)
 
 let () =
+  let duplicate = parse_fixture "fixtures/corpus/duplicate_headings.org" in
   let todo = parse_fixture "fixtures/corpus/todo_workflows.org" in
   let props = parse_fixture "fixtures/corpus/properties_drawers.org" in
   let blocks = parse_fixture "fixtures/corpus/blocks_links_tables.org" in
+  assert_contains (run_ok duplicate ".sections[0]") "* Projects (lines 3:13)";
+  assert_contains (run_ok duplicate ".section('Inbox', 6:8)") "** Inbox (lines 6:8)";
+  assert_contains (run_ok duplicate ".section_contains('Inbox')") "** Inbox (lines 6:8)";
+  assert_contains (run_ok duplicate ".search('second inbox')") "* Projects (lines 3:13)";
   assert (String.equal (run_ok todo ".todos | .length") "2");
   assert (String.equal (run_ok todo ".done | .length") "1");
   assert (String.equal (run_ok todo ".scheduled | .length") "2");
   assert (String.equal (run_ok todo ".deadline | .length") "1");
   assert (String.equal (run_ok todo ".closed | .length") "1");
+  assert_contains (run_ok todo ".todos") "* Prepare release (lines 4:9)";
+  assert_contains (run_ok todo ".done") "* Submit weekly report (lines 13:14)";
+  assert_contains (run_ok todo ".scheduled") "* Confirm changelog (lines 10:12)";
+  assert_contains (run_ok todo ".deadline") "* Prepare release (lines 4:9)";
+  assert_contains (run_ok todo ".closed") "* Submit weekly report (lines 13:14)";
   assert (String.equal (run_ok todo ".tags | .length") "3");
   assert (String.equal (run_ok props ".properties | .length") "4");
   assert
