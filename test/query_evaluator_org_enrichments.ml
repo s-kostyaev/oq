@@ -328,6 +328,19 @@ custom-id:release-notes
 
 let () =
   let inline_doc =
+    parse_inline "links-news-shell.org"
+      {|
+* Note
+news:comp.emacs
+shell:echo hello
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".links | .length") "2");
+  assert_contains (run_ok inline_doc ".links | map(.target)") "news:comp.emacs";
+  assert_contains (run_ok inline_doc ".links | map(.target)") "shell:echo"
+
+let () =
+  let inline_doc =
     parse_inline "links-bracket.org"
       {|
 * Links

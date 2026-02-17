@@ -551,6 +551,24 @@ let () =
 
 let () =
   match
+    Oq.Org.parse_string ~path:"links-news-shell.org"
+      "* Note\nnews:comp.emacs\nshell:echo hello\n"
+  with
+  | Error err ->
+      failwithf "expected news/shell plain links parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.links = 2);
+      assert
+        (List.exists doc.index.links ~f:(fun link ->
+             String.equal link.target "news:comp.emacs"));
+      assert
+        (List.exists doc.index.links ~f:(fun link ->
+             String.equal link.target "shell:echo"))
+
+let () =
+  match
     Oq.Org.parse_string ~path:"links-bracket.org"
       "* Links\n[[https://example.com/docs][Example Docs]]\n"
   with

@@ -641,10 +641,20 @@ module Org = struct
     in
     let is_known_plain_scheme token =
       let lower = String.lowercase token in
-      String.is_prefix lower ~prefix:"file:"
-      || String.is_prefix lower ~prefix:"mailto:"
-      || String.is_prefix lower ~prefix:"id:"
-      || String.is_prefix lower ~prefix:"custom-id:"
+      let has_prefix prefix =
+        String.is_prefix lower ~prefix
+        && String.length lower > String.length prefix
+      in
+      has_prefix "file:"
+      || has_prefix "mailto:"
+      || has_prefix "id:"
+      || has_prefix "custom-id:"
+      || has_prefix "news:"
+      || has_prefix "shell:"
+      || has_prefix "elisp:"
+      || has_prefix "help:"
+      || has_prefix "info:"
+      || has_prefix "man:"
     in
     whitespace_tokens line
     |> List.filter_map ~f:(fun token ->
