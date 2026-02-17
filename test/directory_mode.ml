@@ -220,6 +220,20 @@ let () =
 let () =
   with_temp_dir (fun root ->
       ignore
+        (write_file root "src-no-lang-switch.org"
+           "* Snippets\n#+BEGIN_SRC -n :results output\n(message \"ok\")\n#+END_SRC\n");
+      let outcome = run_directory ~query:(Some ".code('-n') | .length") root in
+      assert_exit outcome Oq.Exit_code.Success;
+      let stdout = require_stdout outcome in
+      assert (extract_counter stdout "candidate_org" = 1);
+      assert (extract_counter stdout "parsed_ok" = 1);
+      assert (extract_counter stdout "parse_failed" = 0);
+      assert_contains stdout "src-no-lang-switch.org:";
+      assert_contains stdout "  0")
+
+let () =
+  with_temp_dir (fun root ->
+      ignore
         (write_file root "todo-multi.org"
            "#+TODO: TODO(t) NEXT(n) | DONE(d)\n#+TODO: WAIT(w) HOLD(h) | CANCELED(c)\n* TODO A\n* WAIT B\n* CANCELED C\n");
       let outcome = run_directory ~query:(Some ".todos | .length") root in

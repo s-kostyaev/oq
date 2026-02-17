@@ -317,6 +317,25 @@ let () =
 
 let () =
   match
+    Oq.Org.parse_string ~path:"src-no-language-switch.org"
+      "* Snippets\n#+BEGIN_SRC -n :results output\n(message \"ok\")\n#+END_SRC\n"
+  with
+  | Error err ->
+      failwithf "expected src no-language-with-switch parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc -> (
+      match doc.index.blocks with
+      | [ block ] ->
+          assert (Poly.equal block.kind Oq.Org.Src);
+          assert (Option.is_none block.language)
+      | _ ->
+          failwith
+            "expected one src block without language when only switches are \
+             provided")
+
+let () =
+  match
     Oq.Org.parse_string ~path:"src-upper-lang.org"
       "* Demo\n#+BEGIN_SRC OCAML\nlet x = 1\n#+END_SRC\n"
   with

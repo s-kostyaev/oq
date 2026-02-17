@@ -508,7 +508,10 @@ module Org = struct
       in
       let parse_optional_primary_token text =
         match whitespace_tokens text |> List.hd with
-        | Some token when not (String.is_prefix token ~prefix:":") -> Some token
+        | Some token
+          when (not (String.is_prefix token ~prefix:":"))
+               && not (String.is_prefix token ~prefix:"-") ->
+            Some token
         | _ -> None
       in
       match kind_token with
