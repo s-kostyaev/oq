@@ -144,6 +144,28 @@ let () =
       | _ -> failwith "expected one export block")
 
 let () =
+  match
+    Oq.Org.parse_string ~path:"tab-whitespace.org"
+      "*\tTODO [#A] Tab heading :tag:\n#+BEGIN_SRC\tocaml\nlet x = 1\n#+END_SRC\n"
+  with
+  | Error err ->
+      failwithf "expected tab-whitespace parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc -> (
+      match (doc.index.headings, doc.index.blocks) with
+      | [ heading ], [ block ] ->
+          assert (heading.level = 1);
+          assert (String.equal heading.title "Tab heading");
+          assert
+            (String.equal
+               (Option.value heading.todo_keyword ~default:"")
+               "TODO");
+          assert (Poly.equal block.kind Oq.Org.Src);
+          assert (String.equal (Option.value block.language ~default:"") "ocaml")
+      | _ -> failwith "expected one heading and one src block")
+
+let () =
   let bytes = Bytes.create 1 in
   Bytes.set bytes 0 (Char.of_int_exn 0xFF);
   let invalid = Bytes.to_string bytes in

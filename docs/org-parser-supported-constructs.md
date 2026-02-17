@@ -9,6 +9,7 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
 - Heading level recognition.
 - Parent/child hierarchy construction.
 - Section range calculation (`section_source`).
+- Space or tab is accepted after the star prefix.
 - References: `lib/oq.ml:305`, `lib/oq.ml:661`, `lib/oq.ml:842`.
 
 2. Heading components
@@ -40,6 +41,8 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
   - `EXAMPLE`,
   - `QUOTE`,
   - `EXPORT` (optional backend).
+- Block headers accept space or tab as separator before optional parameters
+  (for example `#+BEGIN_SRC\tocaml`).
 - Other valid block types (for example `CENTER`, `VERSE`, `COMMENT`) are parsed as opaque regions:
   - they do not fail parsing,
   - they are not added to `index.blocks`.

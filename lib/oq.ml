@@ -114,7 +114,7 @@ module Org = struct
 
     let parse_from_keyword_value value =
       let tokens text =
-        String.split (String.strip text) ~on:' '
+        String.split_on_chars (String.strip text) ~on:[ ' '; '\t'; '\r'; '\n' ]
         |> List.filter ~f:(fun token -> not (String.is_empty token))
       in
       match String.lsplit2 value ~on:'|' with
@@ -302,6 +302,10 @@ module Org = struct
   let make_source_ref ~path ~start_line ~end_line =
     { Source_ref.path; span = { Span.start_line; end_line } }
 
+  let whitespace_tokens text =
+    String.split_on_chars (String.strip text) ~on:[ ' '; '\t'; '\r'; '\n' ]
+    |> List.filter ~f:(fun token -> not (String.is_empty token))
+
   let parse_heading_line line =
     let line_length = String.length line in
     let rec count_stars index =
@@ -311,7 +315,8 @@ module Org = struct
     in
     let star_count = count_stars 0 in
     if star_count = 0 then None
-    else if star_count >= line_length || not (Char.equal line.[star_count] ' ') then
+    else if star_count >= line_length || not (Char.is_whitespace line.[star_count])
+    then
       None
     else
       let body = String.strip (String.drop_prefix line (star_count + 1)) in
@@ -348,10 +353,7 @@ module Org = struct
 
   let parse_heading_parts ~todo_config ~raw_heading_body =
     let title_without_tags, tags = split_title_and_tags raw_heading_body in
-    let tokens =
-      String.split title_without_tags ~on:' '
-      |> List.filter ~f:(fun token -> not (String.is_empty token))
-    in
+    let tokens = whitespace_tokens title_without_tags in
     let todo_keyword, after_todo =
       match tokens with
       | token :: rest when Todo_config.is_known_state todo_config token ->
@@ -420,30 +422,35 @@ module Org = struct
     let trimmed = String.strip line in
     let upper = String.uppercase trimmed in
     let prefix = "#+BEGIN_" in
+    let split_first_whitespace text =
+      let length = String.length text in
+      let rec find index =
+        if index >= length then None
+        else if Char.is_whitespace text.[index] then Some index
+        else find (index + 1)
+      in
+      match find 0 with
+      | None -> (String.strip text, "")
+      | Some index ->
+          let left = String.prefix text index |> String.strip in
+          let right = String.drop_prefix text (index + 1) |> String.strip in
+          (left, right)
+    in
     if not (String.is_prefix upper ~prefix) then None
     else
       let after_prefix = String.drop_prefix trimmed (String.length prefix) in
       let kind_token, rest =
-        match String.lsplit2 after_prefix ~on:' ' with
-        | Some (kind, trailing) -> (String.uppercase (String.strip kind), trailing)
-        | None -> (String.uppercase (String.strip after_prefix), "")
+        let kind, trailing = split_first_whitespace after_prefix in
+        (String.uppercase kind, trailing)
       in
       match kind_token with
       | "SRC" ->
-          let language =
-            String.split (String.strip rest) ~on:' '
-            |> List.filter ~f:(fun token -> not (String.is_empty token))
-            |> List.hd
-          in
+          let language = whitespace_tokens rest |> List.hd in
           Some (Supported (Src, language))
       | "EXAMPLE" -> Some (Supported (Example, None))
       | "QUOTE" -> Some (Supported (Quote, None))
       | "EXPORT" ->
-          let backend =
-            String.split (String.strip rest) ~on:' '
-            |> List.filter ~f:(fun token -> not (String.is_empty token))
-            |> List.hd
-          in
+          let backend = whitespace_tokens rest |> List.hd in
           Some (Supported (Export, backend))
       | _ -> Some (Opaque kind_token)
 
