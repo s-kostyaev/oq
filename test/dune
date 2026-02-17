@@ -47,3 +47,10 @@
   (glob_files_rec fixtures/*.org))
  (preprocess
   (pps ppx_jane)))
+
+(test
+ (name query_parser)
+ (modules query_parser)
+ (libraries oq)
+ (preprocess
+  (pps ppx_jane)))

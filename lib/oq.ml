@@ -963,6 +963,673 @@ module Org = struct
           }
 end
 
+module Query = struct
+  module Ast = struct
+    type comparison_op =
+      | Eq
+      | Ne
+      | Lt
+      | Le
+      | Gt
+      | Ge
+
+    type literal =
+      | String of string
+      | Int of int
+      | Float of float
+      | Bool of bool
+
+    type predicate =
+      | Predicate_value of expr
+      | Predicate_compare of {
+          left : expr;
+          op : comparison_op;
+          right : expr;
+        }
+      | Predicate_and of predicate * predicate
+      | Predicate_or of predicate * predicate
+
+    and expr =
+      | Path of string list
+      | Literal of literal
+      | Call of {
+          name : string;
+          args : expr list;
+        }
+      | Parenthesized of predicate
+
+    type selector_arg =
+      | Expr_arg of expr
+      | Span_arg of int * int
+
+    type selector = {
+      name : string;
+      args : selector_arg list;
+    }
+
+    type function_stage =
+      | Filter of predicate
+      | Map of expr
+
+    type atom_stage =
+      | Selector of selector
+      | Function of function_stage
+
+    type postfix =
+      | Index of int
+      | Slice of int option * int option
+      | Field of string
+
+    type stage = {
+      atom_stage : atom_stage;
+      postfixes : postfix list;
+    }
+
+    type t = stage list
+  end
+
+  type error = {
+    message : string;
+    position : int;
+  }
+
+  exception Parse_failure of error
+
+  type state = {
+    query : string;
+    length : int;
+    mutable index : int;
+  }
+
+  let make_state query = { query; length = String.length query; index = 0 }
+  let is_eof state = state.index >= state.length
+
+  let peek_char state =
+    if is_eof state then None else Some state.query.[state.index]
+
+  let current_position state = state.index + 1
+
+  let failf state fmt =
+    Printf.ksprintf
+      (fun message ->
+        raise (Parse_failure { message; position = current_position state }))
+      fmt
+
+  let char_at state offset =
+    let index = state.index + offset in
+    if index < 0 || index >= state.length then None else Some state.query.[index]
+
+  let advance state = state.index <- state.index + 1
+
+  let is_identifier_start = function
+    | 'a' .. 'z' | 'A' .. 'Z' | '_' -> true
+    | _ -> false
+
+  let is_identifier_char = function
+    | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_' -> true
+    | _ -> false
+
+  let is_digit = function
+    | '0' .. '9' -> true
+    | _ -> false
+
+  let is_whitespace = function
+    | ' ' | '\n' | '\r' | '\t' -> true
+    | _ -> false
+
+  let skip_whitespace state =
+    while
+      (match peek_char state with
+      | Some char -> is_whitespace char
+      | None -> false)
+    do
+      advance state
+    done
+
+  let consume_char state char =
+    match peek_char state with
+    | Some current when Char.equal current char ->
+        advance state;
+        true
+    | _ -> false
+
+  let expect_char state char =
+    if not (consume_char state char) then failf state "expected %C" char
+
+  let parse_identifier state =
+    skip_whitespace state;
+    match peek_char state with
+    | Some char when is_identifier_start char ->
+        let start = state.index in
+        advance state;
+        while
+          match peek_char state with
+          | Some next when is_identifier_char next ->
+              advance state;
+              true
+          | _ -> false
+        do
+          ()
+        done;
+        String.sub state.query ~pos:start ~len:(state.index - start)
+    | _ -> failf state "expected identifier"
+
+  let parse_string_literal state =
+    skip_whitespace state;
+    let quote =
+      match peek_char state with
+      | Some '\'' ->
+          advance state;
+          '\''
+      | Some '"' ->
+          advance state;
+          '"'
+      | _ -> failf state "expected string literal"
+    in
+    let buffer = Buffer.create 16 in
+    let rec loop () =
+      match peek_char state with
+      | None -> failf state "unterminated string literal"
+      | Some char when Char.equal char quote ->
+          advance state;
+          Buffer.contents buffer
+      | Some '\\' ->
+          advance state;
+          (match peek_char state with
+          | None -> failf state "unterminated escape sequence in string literal"
+          | Some escaped ->
+              advance state;
+              let resolved =
+                match escaped with
+                | '\\' -> '\\'
+                | '/' -> '/'
+                | 'n' -> '\n'
+                | 'r' -> '\r'
+                | 't' -> '\t'
+                | '"' -> '"'
+                | '\'' -> '\''
+                | other ->
+                    failf state
+                      "unsupported escape sequence \\%C in string literal" other
+              in
+              Buffer.add_char buffer resolved;
+              loop ())
+      | Some char ->
+          advance state;
+          Buffer.add_char buffer char;
+          loop ()
+    in
+    loop ()
+
+  let try_parse_signed_int state =
+    skip_whitespace state;
+    let start = state.index in
+    (match peek_char state with
+    | Some '-' -> advance state
+    | _ -> ());
+    let digit_start = state.index in
+    while
+      match peek_char state with
+      | Some char when is_digit char ->
+          advance state;
+          true
+      | _ -> false
+    do
+      ()
+    done;
+    if digit_start = state.index then (
+      state.index <- start;
+      None)
+    else
+      let raw = String.sub state.query ~pos:start ~len:(state.index - start) in
+      Some (Int.of_string raw)
+
+  let parse_number_literal state =
+    skip_whitespace state;
+    let start = state.index in
+    (match peek_char state with
+    | Some '-' -> advance state
+    | _ -> ());
+    let int_digits_start = state.index in
+    while
+      match peek_char state with
+      | Some char when is_digit char ->
+          advance state;
+          true
+      | _ -> false
+    do
+      ()
+    done;
+    let int_digits = state.index - int_digits_start in
+    let is_float =
+      match peek_char state with
+      | Some '.' ->
+          advance state;
+          let frac_start = state.index in
+          while
+            match peek_char state with
+            | Some char when is_digit char ->
+                advance state;
+                true
+            | _ -> false
+          do
+            ()
+          done;
+          if state.index = frac_start then
+            failf state "malformed float literal (expected digits after decimal)";
+          true
+      | _ -> false
+    in
+    if int_digits = 0 then failf state "expected number literal";
+    let raw = String.sub state.query ~pos:start ~len:(state.index - start) in
+    if is_float then Ast.Literal (Float (Float.of_string raw))
+    else Ast.Literal (Int (Int.of_string raw))
+
+  let try_consume_keyword state keyword =
+    skip_whitespace state;
+    let start = state.index in
+    let keyword_length = String.length keyword in
+    if start + keyword_length > state.length then false
+    else
+      let candidate =
+        String.sub state.query ~pos:start ~len:keyword_length
+      in
+      if not (String.equal candidate keyword) then false
+      else
+        match char_at state keyword_length with
+        | Some char when is_identifier_char char -> false
+        | _ ->
+            state.index <- state.index + keyword_length;
+            true
+
+  let try_parse_comparison_op state =
+    skip_whitespace state;
+    match (peek_char state, char_at state 1) with
+    | Some '=', Some '=' ->
+        state.index <- state.index + 2;
+        Some Ast.Eq
+    | Some '!', Some '=' ->
+        state.index <- state.index + 2;
+        Some Ast.Ne
+    | Some '<', Some '=' ->
+        state.index <- state.index + 2;
+        Some Ast.Le
+    | Some '>', Some '=' ->
+        state.index <- state.index + 2;
+        Some Ast.Ge
+    | Some '<', _ ->
+        advance state;
+        Some Ast.Lt
+    | Some '>', _ ->
+        advance state;
+        Some Ast.Gt
+    | _ -> None
+
+  let rec parse_expr state =
+    skip_whitespace state;
+    match peek_char state with
+    | Some '(' ->
+        advance state;
+        let predicate = parse_predicate state in
+        skip_whitespace state;
+        expect_char state ')';
+        Ast.Parenthesized predicate
+    | Some '.' -> parse_path state
+    | Some '\'' | Some '"' ->
+        let string = parse_string_literal state in
+        Ast.Literal (Ast.String string)
+    | Some ('0' .. '9' | '-') -> parse_number_literal state
+    | Some char when is_identifier_start char ->
+        let name = parse_identifier state in
+        if String.equal name "true" then Ast.Literal (Ast.Bool true)
+        else if String.equal name "false" then Ast.Literal (Ast.Bool false)
+        else (
+          skip_whitespace state;
+          if consume_char state '(' then
+            let args = parse_expr_arg_list state in
+            Ast.Call { name; args }
+          else failf state "unexpected identifier %S in expression" name)
+    | Some other -> failf state "unexpected token %C in expression" other
+    | None -> failf state "unexpected end of input while parsing expression"
+
+  and parse_expr_arg_list state =
+    skip_whitespace state;
+    if consume_char state ')' then []
+    else
+      let rec gather acc =
+        let expr = parse_expr state in
+        skip_whitespace state;
+        if consume_char state ',' then gather (expr :: acc)
+        else (
+          expect_char state ')';
+          List.rev (expr :: acc))
+      in
+      gather []
+
+  and parse_path state =
+    expect_char state '.';
+    let first = parse_identifier state in
+    let rec gather parts =
+      skip_whitespace state;
+      if consume_char state '.' then
+        let field = parse_identifier state in
+        gather (field :: parts)
+      else List.rev parts
+    in
+    Ast.Path (gather [ first ])
+
+  and parse_predicate state = parse_disjunction state
+
+  and parse_disjunction state =
+    let left = parse_conjunction state in
+    let rec consume current =
+      if try_consume_keyword state "or" then
+        let right = parse_conjunction state in
+        consume (Ast.Predicate_or (current, right))
+      else current
+    in
+    consume left
+
+  and parse_conjunction state =
+    let left = parse_comparison state in
+    let rec consume current =
+      if try_consume_keyword state "and" then
+        let right = parse_comparison state in
+        consume (Ast.Predicate_and (current, right))
+      else current
+    in
+    consume left
+
+  and parse_comparison state =
+    let left = parse_expr state in
+    match try_parse_comparison_op state with
+    | Some op ->
+        let right = parse_expr state in
+        Ast.Predicate_compare { left; op; right }
+    | None -> Ast.Predicate_value left
+
+  let parse_selector_arg state =
+    skip_whitespace state;
+    let checkpoint = state.index in
+    match try_parse_signed_int state with
+    | Some first ->
+        skip_whitespace state;
+        if consume_char state ':' then
+          (match try_parse_signed_int state with
+          | Some second -> Ast.Span_arg (first, second)
+          | None -> failf state "expected end line after ':' in span argument")
+        else (
+          state.index <- checkpoint;
+          Ast.Expr_arg (parse_expr state))
+    | None -> Ast.Expr_arg (parse_expr state)
+
+  let parse_selector_args state =
+    skip_whitespace state;
+    if consume_char state ')' then []
+    else
+      let rec gather acc =
+        let arg = parse_selector_arg state in
+        skip_whitespace state;
+        if consume_char state ',' then gather (arg :: acc)
+        else (
+          expect_char state ')';
+          List.rev (arg :: acc))
+      in
+      gather []
+
+  let selector_set =
+    String.Set.of_list
+      [
+        "tree";
+        "headings";
+        "section";
+        "section_contains";
+        "sections";
+        "code";
+        "links";
+        "tables";
+        "search";
+        "text";
+        "length";
+        "todos";
+        "done";
+        "properties";
+        "property";
+        "scheduled";
+        "deadline";
+        "closed";
+        "tags";
+      ]
+
+  let regex_flag_set = Char.Set.of_list [ 'i'; 'm'; 's' ]
+
+  let validate_regex_pattern_string state raw =
+    if not (String.is_prefix raw ~prefix:"/") then ()
+    else
+      match String.rsplit2 raw ~on:'/' with
+      | Some (prefix, flags) when String.is_prefix prefix ~prefix:"/" ->
+          let pattern = String.drop_prefix prefix 1 in
+          let seen_flags = Char.Hash_set.create () in
+          String.iter flags ~f:(fun flag ->
+              if not (Set.mem regex_flag_set flag) then
+                failf state
+                  "unsupported regex flags %S (allowed: i,m,s)" flags
+              else if Hash_set.mem seen_flags flag then
+                failf state "duplicate regex flag %C in %S" flag flags
+              else Hash_set.add seen_flags flag);
+          (try
+             ignore (Re2.create_exn pattern : Re2.t)
+           with
+          | exn ->
+              failf state "malformed regex pattern-string %S: %s" raw
+                (Exn.to_string exn))
+      | _ ->
+          failf state
+            "malformed regex pattern-string %S (expected /pattern/flags)" raw
+
+  let arg_to_string = function
+    | Ast.Expr_arg _ -> "expression"
+    | Ast.Span_arg _ -> "span"
+
+  let expect_string_literal_arg state selector index = function
+    | Ast.Expr_arg (Ast.Literal (Ast.String value)) -> value
+    | arg ->
+        failf state "wrong type for .%s argument %d: expected string, got %s"
+          selector index (arg_to_string arg)
+
+  let expect_int_literal_arg state selector index = function
+    | Ast.Expr_arg (Ast.Literal (Ast.Int value)) -> value
+    | Ast.Expr_arg (Ast.Literal (Ast.Float _)) ->
+        failf state "wrong type for .%s argument %d: expected integer, got float"
+          selector index
+    | arg ->
+        failf state "wrong type for .%s argument %d: expected integer, got %s"
+          selector index (arg_to_string arg)
+
+  let expect_span_arg state selector index = function
+    | Ast.Span_arg (start_line, end_line) -> (start_line, end_line)
+    | arg ->
+        failf state "wrong type for .%s argument %d: expected span start:end, got %s"
+          selector index (arg_to_string arg)
+
+  let ensure_no_args state selector args =
+    if not (List.is_empty args) then
+      failf state ".%s does not take arguments" selector
+
+  let ensure_one_arg state selector args =
+    if List.length args <> 1 then failf state ".%s expects exactly 1 argument" selector
+
+  let ensure_zero_or_one_arg state selector args =
+    if List.length args > 1 then
+      failf state ".%s expects at most 1 argument" selector
+
+  let validate_selector_args state selector args =
+    match selector with
+    | "tree" ->
+        ensure_zero_or_one_arg state selector args;
+        List.iteri args ~f:(fun index arg ->
+            let mode = expect_string_literal_arg state selector (index + 1) arg in
+            if
+              not
+                (List.mem [ "compact"; "preview"; "full" ] mode
+                   ~equal:String.equal)
+            then
+              failf state
+                "invalid .tree mode %S (supported: compact|preview|full)" mode)
+    | "headings" ->
+        ensure_zero_or_one_arg state selector args;
+        List.iteri args ~f:(fun index arg ->
+            ignore
+              (expect_int_literal_arg state selector (index + 1) arg : int))
+    | "section" ->
+        if not (List.length args = 1 || List.length args = 2) then
+          failf state ".section expects 1 or 2 arguments";
+        ignore (expect_string_literal_arg state selector 1 (List.nth_exn args 0));
+        if List.length args = 2 then
+          ignore (expect_span_arg state selector 2 (List.nth_exn args 1))
+    | "section_contains" ->
+        ensure_one_arg state selector args;
+        ignore (expect_string_literal_arg state selector 1 (List.hd_exn args))
+    | "code" ->
+        ensure_zero_or_one_arg state selector args;
+        List.iteri args ~f:(fun index arg ->
+            ignore (expect_string_literal_arg state selector (index + 1) arg))
+    | "property" ->
+        ensure_one_arg state selector args;
+        ignore (expect_string_literal_arg state selector 1 (List.hd_exn args))
+    | "search" ->
+        ensure_one_arg state selector args;
+        let raw = expect_string_literal_arg state selector 1 (List.hd_exn args) in
+        validate_regex_pattern_string state raw
+    | "scheduled" | "deadline" | "closed" ->
+        ensure_zero_or_one_arg state selector args;
+        List.iteri args ~f:(fun index arg ->
+            ignore (expect_string_literal_arg state selector (index + 1) arg))
+    | "sections" | "links" | "tables" | "text" | "length" | "todos" | "done"
+    | "properties" | "tags" ->
+        ensure_no_args state selector args
+    | _ -> failf state "unknown selector .%s" selector
+
+  let parse_selector_stage state =
+    expect_char state '.';
+    let name = parse_identifier state in
+    if not (Set.mem selector_set name) then failf state "unknown selector .%s" name;
+    skip_whitespace state;
+    let args =
+      if consume_char state '(' then parse_selector_args state else []
+    in
+    validate_selector_args state name args;
+    Ast.Selector { name; args }
+
+  let parse_function_stage state =
+    let name = parse_identifier state in
+    if String.equal name "length" then
+      failf state "bad stage usage: bare `length` is invalid; use `.length`";
+    skip_whitespace state;
+    expect_char state '(';
+    let parsed =
+      match name with
+      | "filter" ->
+          let predicate = parse_predicate state in
+          Ast.Filter predicate
+      | "map" ->
+          let expr = parse_expr state in
+          Ast.Map expr
+      | _ ->
+          failf state "unknown function stage %S (supported: filter|map)" name
+    in
+    skip_whitespace state;
+    expect_char state ')';
+    Ast.Function parsed
+
+  let parse_index_or_slice_postfix state =
+    expect_char state '[';
+    skip_whitespace state;
+    let start_value = try_parse_signed_int state in
+    skip_whitespace state;
+    if consume_char state ':' then (
+      let end_value = try_parse_signed_int state in
+      skip_whitespace state;
+      expect_char state ']';
+      Ast.Slice (start_value, end_value))
+    else
+      match start_value with
+      | Some index ->
+          skip_whitespace state;
+          expect_char state ']';
+          Ast.Index index
+      | None -> failf state "bad postfix usage: expected index integer inside []"
+
+  let parse_field_postfix state =
+    expect_char state '.';
+    let field = parse_identifier state in
+    Ast.Field field
+
+  let parse_postfixes state =
+    let rec gather acc =
+      skip_whitespace state;
+      match peek_char state with
+      | Some '[' ->
+          let postfix = parse_index_or_slice_postfix state in
+          gather (postfix :: acc)
+      | Some '.' ->
+          let postfix = parse_field_postfix state in
+          gather (postfix :: acc)
+      | _ -> List.rev acc
+    in
+    gather []
+
+  let parse_pipe_stage state =
+    skip_whitespace state;
+    let atom_stage =
+      match peek_char state with
+      | Some '.' -> parse_selector_stage state
+      | Some '[' ->
+          failf state
+            "bad postfix usage: bare indexing stage is invalid (use it after a \
+             selector/function stage)"
+      | Some char when is_identifier_start char -> parse_function_stage state
+      | Some char -> failf state "expected stage start, found %C" char
+      | None -> failf state "unexpected end of input while parsing stage"
+    in
+    let postfixes = parse_postfixes state in
+    { Ast.atom_stage; postfixes }
+
+  let parse query =
+    let state = make_state query in
+    try
+      skip_whitespace state;
+      if is_eof state then
+        Error { message = "empty query"; position = 1 }
+      else
+        let first_stage = parse_pipe_stage state in
+        let rec gather acc =
+          skip_whitespace state;
+          if consume_char state '|' then
+            let stage = parse_pipe_stage state in
+            gather (stage :: acc)
+          else List.rev acc
+        in
+        let stages = gather [ first_stage ] in
+        skip_whitespace state;
+        if not (is_eof state) then
+          Error
+            {
+              message =
+                sprintf "unexpected trailing token %C" state.query.[state.index];
+              position = current_position state;
+            }
+        else Ok stages
+    with
+    | Parse_failure err -> Error err
+
+  let parse_exn query =
+    match parse query with
+    | Ok ast -> ast
+    | Error { message; position } ->
+        failwithf "query parse error at %d: %s" position message ()
+end
+
 module Cli = struct
   let run () = "oq: not implemented"
 end

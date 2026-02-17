@@ -64,17 +64,17 @@ Source PRD: `/Users/sergeykostyaev/ocaml/oq/docs/PRD-oq-v1.md` (Final v1.0, 2026
 5. [DONE] Definition of Done:
    fixtures parse reliably with line-accurate spans and stable reason mapping.
 
-## 4. Query Language Parser (M2, 4-5 days)
+## 4. Query Language Parser (M2, 4-5 days) [DONE]
 
-1. Implement canonical grammar from PRD with precedence:
+1. [DONE] Implement canonical grammar from PRD with precedence:
    `comparison` > `and` > `or`.
-2. Support postfix chaining:
+2. [DONE] Support postfix chaining:
    indexing/slicing plus field access (`.headings[0].title`).
-3. Enforce grammar/validation constraints:
+3. [DONE] Enforce grammar/validation constraints:
    reject bare `| [0]`, reject bare `| length`, validate regex pattern-strings `"/pattern/flags"` with flags `i,m,s`.
-4. Tighten diagnostics to support agent self-correction:
+4. [DONE] Tighten diagnostics to support agent self-correction:
    unknown selector, wrong type, malformed regex, bad postfix usage.
-5. Definition of Done:
+5. [DONE] Definition of Done:
    parser tests for precedence, postfix binding, and negative grammar scenarios pass.
 
 ## 5. Evaluator: Core Selectors and Functions (M2, 5-6 days)
