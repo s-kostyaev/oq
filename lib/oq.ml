@@ -2701,7 +2701,9 @@ module Eval = struct
           heading.title heading.section_source.span.start_line
           heading.section_source.span.end_line
     | Value.Section section ->
-        sprintf "%s (lines %d:%d)" section.heading.title
+        sprintf "%s %s (lines %d:%d)"
+          (String.make section.heading.level '*')
+          section.heading.title
           section.source.span.start_line section.source.span.end_line
     | Value.Property property ->
         sprintf "%s=%s (lines %d:%d)" property.key property.value

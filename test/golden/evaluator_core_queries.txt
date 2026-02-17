@@ -49,6 +49,10 @@ QUERY: .section_contains('Inbox') | .length
 QUERY: .search('second inbox') | .length
 2
 ---
+QUERY: .search('second inbox')
+* Projects (lines 3:13)
+** Inbox (lines 9:13)
+---
 QUERY: .search('/second inbox/i') | .length
 2
 ---

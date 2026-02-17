@@ -67,6 +67,8 @@ let () =
         run_ok doc ".section_contains('Inbox') | .length" );
       ( ".search('second inbox') | .length",
         run_ok doc ".search('second inbox') | .length" );
+      ( ".search('second inbox')",
+        run_ok doc ".search('second inbox')" );
       ( ".search('/second inbox/i') | .length",
         run_ok doc ".search('/second inbox/i') | .length" );
       ( ".headings | filter(startswith(.title, 'In')) | map(.title)",

@@ -118,7 +118,7 @@ let scenarios =
                 "candidate_org=4";
                 "parsed_ok=4";
                 "todo_workflows.org:";
-                "Prepare release (lines 4:9)";
+                "* Prepare release (lines 4:9)";
               ];
             expected_stderr_substrings = [];
           };
