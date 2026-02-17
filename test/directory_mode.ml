@@ -91,6 +91,29 @@ let () =
 
 let () =
   with_temp_dir (fun root ->
+      ignore (write_file root "upper.ORG" "* Upper\nBody\n");
+      let outcome = run_directory ~query:(Some ".headings | .length") root in
+      assert_exit outcome Oq.Exit_code.Success;
+      let stdout = require_stdout outcome in
+      assert (extract_counter stdout "candidate_org" = 1);
+      assert (extract_counter stdout "parsed_ok" = 1);
+      assert (extract_counter stdout "parse_failed" = 0);
+      assert_contains stdout "upper.ORG:";
+      assert_contains stdout "  1")
+
+let () =
+  with_temp_dir (fun root ->
+      let input_path = write_file root "single.ORG" "* Task\nBody\n" in
+      let request : Oq.Cli.request =
+        { input_path; query = Some ".headings | .length"; strict = false; now = None; tz = None }
+      in
+      let outcome = Oq.Cli.execute request in
+      assert_exit outcome Oq.Exit_code.Success;
+      let stdout = require_stdout outcome in
+      assert_contains stdout "1")
+
+let () =
+  with_temp_dir (fun root ->
       let good = write_file root "good.org" "* Alpha\nBody\n" in
       ignore (write_file root "bad.org" "#+BEGIN_SRC ocaml\nlet x = 1\n");
       ignore (write_file root ".secret.org" "* Hidden\n");

@@ -2926,7 +2926,10 @@ module Directory = struct
   let is_hidden_name name =
     String.length name > 0 && Char.equal name.[0] '.'
 
-  let is_org_file name = String.is_suffix name ~suffix:".org"
+  let has_org_extension path =
+    String.Caseless.equal (Stdlib.Filename.extension path) ".org"
+
+  let is_org_file name = has_org_extension name
   let normalize_relative_path = Ordering.normalize_relative_path
 
   let compare_relative_path left right = String.compare left right
@@ -3068,6 +3071,9 @@ module Cli = struct
   let ensure_error_prefix message =
     if String.is_prefix message ~prefix:"Error:" then message
     else Diagnostic.error message
+
+  let has_org_extension path =
+    String.Caseless.equal (Stdlib.Filename.extension path) ".org"
 
   let render_file_summary (doc : Org.t) =
     String.concat ~sep:"\n"
@@ -3227,7 +3233,7 @@ module Cli = struct
         match stat.st_kind with
         | Caml_unix.S_DIR -> run_directory_mode request
         | Caml_unix.S_REG ->
-            if String.is_suffix request.input_path ~suffix:".org" then
+            if has_org_extension request.input_path then
               run_file_mode request
             else
               make_outcome Exit_code.Query_or_usage_error
@@ -3255,3 +3261,5 @@ module Cli = struct
                     (sprintf "unsupported input path kind for %S" request.input_path);
                 ])
 end
+  let has_org_extension path =
+    String.Caseless.equal (Stdlib.Filename.extension path) ".org"
