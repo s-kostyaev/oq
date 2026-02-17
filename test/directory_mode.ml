@@ -230,6 +230,20 @@ let () =
 let () =
   with_temp_dir (fun root ->
       ignore
+        (write_file root "dynamic-block-bad-end.org"
+           "#+BEGIN: clocktable :scope file\n* Inner\n#+END:foo\n");
+      let outcome = run_directory ~query:(Some ".headings | .length") root in
+      assert_exit outcome Oq.Exit_code.Success;
+      let stdout = require_stdout outcome in
+      assert (extract_counter stdout "candidate_org" = 1);
+      assert (extract_counter stdout "parsed_ok" = 1);
+      assert (extract_counter stdout "parse_failed" = 0);
+      assert_contains stdout "dynamic-block-bad-end.org:";
+      assert_contains stdout "  1")
+
+let () =
+  with_temp_dir (fun root ->
+      ignore
         (write_file root "tab-block.org"
            "*\tTask\n#+BEGIN_SRC\tocaml\nlet y = 2\n#+END_SRC\n");
       let outcome = run_directory ~query:(Some ".code('ocaml') | .length") root in

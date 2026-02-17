@@ -588,8 +588,16 @@ module Org = struct
     String.is_prefix (String.uppercase trimmed) ~prefix:"#+BEGIN:"
 
   let is_dynamic_block_end line =
-    let trimmed = String.strip line in
-    String.is_prefix (String.uppercase trimmed) ~prefix:"#+END:"
+    String.Caseless.equal (String.strip line) "#+END:"
+
+  let has_dynamic_block_end_ahead ~lines ~start_index =
+    let line_count = Array.length lines in
+    let rec loop index =
+      if index >= line_count then false
+      else if is_dynamic_block_end lines.(index) then true
+      else loop (index + 1)
+    in
+    loop start_index
 
   let block_kind_to_end_token = function
     | Src -> "SRC"
@@ -954,7 +962,10 @@ module Org = struct
               if is_drawer_end line then open_drawer_state := None else ()
           | None ->
               if is_table_line line then ()
-              else if parse_dynamic_block_begin line then
+              else if
+                parse_dynamic_block_begin line
+                && has_dynamic_block_end_ahead ~lines ~start_index:(line_index + 1)
+              then
                 open_block_state := Some (Open_dynamic { start_line = line_index + 1 })
               else
                 match parse_keyword_line line with
@@ -1234,7 +1245,11 @@ module Org = struct
                             })
                   else (
                     finalize_table (line_no - 1);
-                    if parse_dynamic_block_begin line then
+                    if
+                      parse_dynamic_block_begin line
+                      && has_dynamic_block_end_ahead ~lines
+                           ~start_index:(line_index + 1)
+                    then
                       open_block_state := Some (Open_dynamic { start_line = line_no })
                     else
                       match parse_keyword_line line with

@@ -386,6 +386,17 @@ let () =
 
 let () =
   let inline_doc =
+    parse_inline "dynamic-block-bad-end.org"
+      {|
+#+BEGIN: clocktable :scope file
+* Inner
+#+END:foo
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".headings | .length") "1")
+
+let () =
+  let inline_doc =
     parse_inline "links-tab.org"
       {|
 * Note

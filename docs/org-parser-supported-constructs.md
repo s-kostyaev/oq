@@ -84,6 +84,8 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
 - `#+END_...` block closing lines tolerate trailing text after block kind.
 - Dynamic blocks (`#+BEGIN: ...` / `#+END:`) are treated as opaque regions,
   so unsupported internals do not break parsing.
+- Dynamic block closing marker is matched strictly as `#+END:` (case-insensitive),
+  so malformed endings like `#+END:foo` do not hide surrounding content.
 - Other valid block types (for example `CENTER`, `VERSE`, `COMMENT`) are parsed as opaque regions:
   - they do not fail parsing,
   - they are not added to `index.blocks`.
