@@ -710,6 +710,27 @@ let () =
 
 let () =
   match
+    Oq.Org.parse_string ~path:"links-file-no-scheme.org"
+      "* Note\n./notes.org\n../docs/spec.org\n/ssh:me@host:/tmp/notes.org\n"
+  with
+  | Error err ->
+      failwithf "expected plain file path links parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.links = 3);
+      assert
+        (List.exists doc.index.links ~f:(fun link ->
+             String.equal link.target "./notes.org"));
+      assert
+        (List.exists doc.index.links ~f:(fun link ->
+             String.equal link.target "../docs/spec.org"));
+      assert
+        (List.exists doc.index.links ~f:(fun link ->
+             String.equal link.target "/ssh:me@host:/tmp/notes.org"))
+
+let () =
+  match
     Oq.Org.parse_string ~path:"links-more-schemes.org"
       "* Note\nirc:#emacs\ngnus:group\ndocview:/tmp/a.pdf::5\nrmail:Inbox\nbbdb:John_Doe\n"
   with

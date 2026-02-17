@@ -454,6 +454,23 @@ file+emacs:/tmp/report.txt
 
 let () =
   let inline_doc =
+    parse_inline "links-file-no-scheme.org"
+      {|
+* Note
+./notes.org
+../docs/spec.org
+/ssh:me@host:/tmp/notes.org
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".links | .length") "3");
+  assert_contains (run_ok inline_doc ".links | map(.target)") "./notes.org";
+  assert_contains (run_ok inline_doc ".links | map(.target)") "../docs/spec.org";
+  assert_contains
+    (run_ok inline_doc ".links | map(.target)")
+    "/ssh:me@host:/tmp/notes.org"
+
+let () =
+  let inline_doc =
     parse_inline "links-more-schemes.org"
       {|
 * Note

@@ -582,7 +582,7 @@ module Org = struct
 
   let trim_plain_link_token token =
     let is_leading_trim_char = function
-      | '(' | '[' | '<' | ',' | '.' | ';' | ':' | '"' | '\'' -> true
+      | '(' | '[' | '<' | ',' | ';' | ':' | '"' | '\'' -> true
       | _ -> false
     in
     let is_trailing_trim_char = function
@@ -679,6 +679,13 @@ module Org = struct
       || has_prefix "wl:"
       || has_prefix "vm:"
     in
+    let is_plain_file_path token =
+      let has_prefix prefix =
+        String.is_prefix token ~prefix
+        && String.length token > String.length prefix
+      in
+      has_prefix "/" || has_prefix "./" || has_prefix "../"
+    in
     whitespace_tokens line
     |> List.filter_map ~f:(fun token ->
            let looks_like_bracket_fragment =
@@ -689,7 +696,10 @@ module Org = struct
            if looks_like_bracket_fragment then None
            else
              let normalized = trim_plain_link_token token in
-             if is_uri_with_scheme normalized || is_known_plain_scheme normalized
+             if
+               is_uri_with_scheme normalized
+               || is_known_plain_scheme normalized
+               || is_plain_file_path normalized
              then Some normalized
              else None)
 

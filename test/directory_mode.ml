@@ -601,6 +601,20 @@ let () =
 let () =
   with_temp_dir (fun root ->
       ignore
+        (write_file root "links-file-no-scheme.org"
+           "* Note\n./notes.org\n../docs/spec.org\n/ssh:me@host:/tmp/notes.org\n");
+      let outcome = run_directory ~query:(Some ".links | .length") root in
+      assert_exit outcome Oq.Exit_code.Success;
+      let stdout = require_stdout outcome in
+      assert (extract_counter stdout "candidate_org" = 1);
+      assert (extract_counter stdout "parsed_ok" = 1);
+      assert (extract_counter stdout "parse_failed" = 0);
+      assert_contains stdout "links-file-no-scheme.org:";
+      assert_contains stdout "  3")
+
+let () =
+  with_temp_dir (fun root ->
+      ignore
         (write_file root "links-more-schemes.org"
            "* Note\nirc:#emacs\ngnus:group\ndocview:/tmp/a.pdf::5\nrmail:Inbox\nbbdb:John_Doe\n");
       let outcome = run_directory ~query:(Some ".links | .length") root in
