@@ -889,6 +889,22 @@ https://example.com
 
 let () =
   let inline_doc =
+    parse_inline "links-in-properties-drawer.org"
+      {|
+* Task
+:PROPERTIES:
+:URL: https://example.com
+:END:
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".properties | .length") "1");
+  assert (String.equal (run_ok inline_doc ".links | .length") "1");
+  assert_contains
+    (run_ok inline_doc ".links | map(.target)")
+    "https://example.com"
+
+let () =
+  let inline_doc =
     parse_inline "links-in-center-block.org"
       {|
 * Note

@@ -1146,6 +1146,20 @@ let () =
 
 let () =
   match
+    Oq.Org.parse_string ~path:"links-in-properties-drawer.org"
+      "* Task\n:PROPERTIES:\n:URL: https://example.com\n:END:\n"
+  with
+  | Error err ->
+      failwithf "expected links in properties drawer parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.properties = 1);
+      assert (List.length doc.index.links = 1);
+      assert (String.equal (List.hd_exn doc.index.links).target "https://example.com")
+
+let () =
+  match
     Oq.Org.parse_string ~path:"links-in-center-block.org"
       "* Note\n#+BEGIN_CENTER\nhttps://example.com\n#+END_CENTER\n"
   with

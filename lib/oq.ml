@@ -1286,7 +1286,9 @@ module Org = struct
                             in
                             properties_rev :=
                               { key; value; heading_id; source } :: !properties_rev
-                        | None -> ())
+                        | None -> ());
+                        add_links ~line:value ~line_no
+                          ~heading_id:drawer_state.heading_id
                     | None ->
                         if not (is_keyword_like_line line) then
                           add_links ~line ~line_no

@@ -67,6 +67,8 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
   indented with leading whitespace once a drawer is open.
 - Plain/bracket links inside drawer text are indexed, while keyword-like lines
   (for example `#+LINK: ...`) stay inactive for link extraction.
+- Property values in `:PROPERTIES:` drawers are also scanned for links
+  (for example `:URL: https://example.com`).
 - `.property("KEY")` matching is case-insensitive for property names.
 - References: `lib/oq.ml:382`, `lib/oq.ml:396`, `lib/oq.ml:763`.
 

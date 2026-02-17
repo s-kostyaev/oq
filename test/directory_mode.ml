@@ -1095,6 +1095,20 @@ let () =
 let () =
   with_temp_dir (fun root ->
       ignore
+        (write_file root "links-in-properties-drawer.org"
+           "* Task\n:PROPERTIES:\n:URL: https://example.com\n:END:\n");
+      let outcome = run_directory ~query:(Some ".links | .length") root in
+      assert_exit outcome Oq.Exit_code.Success;
+      let stdout = require_stdout outcome in
+      assert (extract_counter stdout "candidate_org" = 1);
+      assert (extract_counter stdout "parsed_ok" = 1);
+      assert (extract_counter stdout "parse_failed" = 0);
+      assert_contains stdout "links-in-properties-drawer.org:";
+      assert_contains stdout "  1")
+
+let () =
+  with_temp_dir (fun root ->
+      ignore
         (write_file root "links-in-center-block.org"
            "* Note\n#+BEGIN_CENTER\nhttps://example.com\n#+END_CENTER\n");
       let outcome = run_directory ~query:(Some ".links | .length") root in
