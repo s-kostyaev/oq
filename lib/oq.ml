@@ -852,7 +852,15 @@ module Org = struct
                     (target, Some description)
                 | None -> (String.strip inner, None)
               in
-              loop (end_index + 2) (link :: acc))
+              let target, _ = link in
+              let is_valid_link =
+                (not (String.is_empty target))
+                && not (String.is_substring target ~substring:"[[")
+                && not (String.is_substring target ~substring:"]]")
+              in
+              if is_valid_link then
+                loop (end_index + 2) (link :: acc)
+              else loop (start_index + 2) acc)
     in
     loop 0 []
 

@@ -954,6 +954,20 @@ let () =
 let () =
   with_temp_dir (fun root ->
       ignore
+        (write_file root "links-bracket-after-broken-open.org"
+           "* Links\nbroken [[ token then [[https://example.com/docs][ok]]\n");
+      let outcome = run_directory ~query:(Some ".links | .length") root in
+      assert_exit outcome Oq.Exit_code.Success;
+      let stdout = require_stdout outcome in
+      assert (extract_counter stdout "candidate_org" = 1);
+      assert (extract_counter stdout "parsed_ok" = 1);
+      assert (extract_counter stdout "parse_failed" = 0);
+      assert_contains stdout "links-bracket-after-broken-open.org:";
+      assert_contains stdout "  1")
+
+let () =
+  with_temp_dir (fun root ->
+      ignore
         (write_file root "links-parentheses.org"
            "* Links\nhttps://en.wikipedia.org/wiki/Function_(mathematics)\n");
       let outcome = run_directory ~query:(Some ".links | .length") root in

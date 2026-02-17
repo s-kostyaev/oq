@@ -757,6 +757,19 @@ let () =
 
 let () =
   let inline_doc =
+    parse_inline "links-bracket-after-broken-open.org"
+      {|
+* Links
+broken [[ token then [[https://example.com/docs][ok]]
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".links | .length") "1");
+  assert_contains
+    (run_ok inline_doc ".links | map(.target)")
+    "https://example.com/docs"
+
+let () =
+  let inline_doc =
     parse_inline "links-parentheses.org"
       {|
 * Links

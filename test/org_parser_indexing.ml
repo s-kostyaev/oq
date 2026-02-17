@@ -1041,6 +1041,22 @@ let () =
 
 let () =
   match
+    Oq.Org.parse_string ~path:"links-bracket-after-broken-open.org"
+      "* Links\nbroken [[ token then [[https://example.com/docs][ok]]\n"
+  with
+  | Error err ->
+      failwithf "expected bracket link after broken open parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc -> (
+      match doc.index.links with
+      | [ link ] ->
+          assert (Poly.equal link.kind Oq.Org.Bracket);
+          assert (String.equal link.target "https://example.com/docs")
+      | _ -> failwith "expected one valid bracket link after broken [[ fragment")
+
+let () =
+  match
     Oq.Org.parse_string ~path:"links-parentheses.org"
       "* Links\nhttps://en.wikipedia.org/wiki/Function_(mathematics)\n"
   with

@@ -122,6 +122,8 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
   (for example `if x < y then <https://example.com>` still indexes the URL).
 - Repeated link occurrences are preserved (same target repeated on a line is indexed multiple times).
 - Bracket links are not duplicated as plain links.
+- Bracket-link scanning skips malformed opening fragments, so a stray `[[`
+  before a valid link on the same line does not produce a bogus target.
 - Plain links preserve balanced trailing parentheses in URLs.
 - Leading punctuation before plain links is trimmed (including `.`), while
   relative file links starting with `./` or `../` are preserved.
