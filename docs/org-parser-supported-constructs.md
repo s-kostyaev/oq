@@ -85,6 +85,7 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
 
 3. Encoding
 - Invalid UTF-8 input returns `invalid_utf8`.
+- UTF-8 BOM at file start is tolerated and ignored.
 - References: `lib/oq.ml:579`, `test/org_parser_indexing.ml:110`.
 
 ## Test Validation

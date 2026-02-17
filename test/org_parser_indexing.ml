@@ -108,6 +108,24 @@ let () =
       assert (List.length doc.index.todos = 3)
 
 let () =
+  let bom =
+    String.init 3 ~f:(fun index ->
+        Char.of_int_exn [| 0xEF; 0xBB; 0xBF |].(index))
+  in
+  match
+    Oq.Org.parse_string ~path:"bom-todo.org"
+      (bom ^ "#+SEQ_TODO: NEXT | DONE\n* NEXT Task\n")
+  with
+  | Error err ->
+      failwithf "expected UTF-8 BOM parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (Poly.equal doc.todo_config.open_states [ "NEXT" ]);
+      assert (Poly.equal doc.todo_config.done_states [ "DONE" ]);
+      assert (List.length doc.index.todos = 1)
+
+let () =
   match
     Oq.Org.parse_string ~path:"todo-multiple-lines.org"
       "#+TODO: TODO(t) NEXT(n) | DONE(d)\n#+TODO: WAIT(w) HOLD(h) | CANCELED(c)\n* TODO A\n* WAIT B\n* CANCELED C\n"

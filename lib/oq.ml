@@ -330,6 +330,15 @@ module Org = struct
   let make_source_ref ~path ~start_line ~end_line =
     { Source_ref.path; span = { Span.start_line; end_line } }
 
+  let strip_utf8_bom text =
+    if
+      String.length text >= 3
+      && Char.equal text.[0] (Char.of_int_exn 0xEF)
+      && Char.equal text.[1] (Char.of_int_exn 0xBB)
+      && Char.equal text.[2] (Char.of_int_exn 0xBF)
+    then String.drop_prefix text 3
+    else text
+
   let whitespace_tokens text =
     String.split_on_chars (String.strip text) ~on:[ ' '; '\t'; '\r'; '\n' ]
     |> List.filter ~f:(fun token -> not (String.is_empty token))
@@ -677,7 +686,8 @@ module Org = struct
         }
     else
       try
-        let lines = String.split_lines content |> Array.of_list in
+        let normalized_content = strip_utf8_bom content in
+        let lines = String.split_lines normalized_content |> Array.of_list in
         let line_count = Array.length lines in
         let todo_config = ref Todo_config.default in
         let has_explicit_todo_config = ref false in

@@ -248,6 +248,24 @@ let () =
 
 let () =
   with_temp_dir (fun root ->
+      let bom =
+        String.init 3 ~f:(fun index ->
+            Char.of_int_exn [| 0xEF; 0xBB; 0xBF |].(index))
+      in
+      ignore
+        (write_file root "bom-todo.org"
+           (bom ^ "#+SEQ_TODO: NEXT | DONE\n* NEXT Task\n* DONE Closed\n"));
+      let outcome = run_directory ~query:(Some ".todos | .length") root in
+      assert_exit outcome Oq.Exit_code.Success;
+      let stdout = require_stdout outcome in
+      assert (extract_counter stdout "candidate_org" = 1);
+      assert (extract_counter stdout "parsed_ok" = 1);
+      assert (extract_counter stdout "parse_failed" = 0);
+      assert_contains stdout "bom-todo.org:";
+      assert_contains stdout "  1")
+
+let () =
+  with_temp_dir (fun root ->
       ignore (write_file root "broken-a.org" "#+BEGIN_SRC ocaml\nlet a = 1\n");
       ignore (write_file root "broken-b.org" "#+BEGIN_QUOTE\nunterminated\n");
       let outcome = run_directory ~query:(Some ".headings") root in
