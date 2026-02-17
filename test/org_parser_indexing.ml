@@ -604,6 +604,20 @@ let () =
 
 let () =
   match
+    Oq.Org.parse_string ~path:"drawer-unclosed-known.org"
+      "* Note\n:PROPERTIES:\n:OWNER: Alice\n** Child\n"
+  with
+  | Error err ->
+      failwithf "expected unclosed known drawer to parse as plain content, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.headings = 2);
+      assert (List.is_empty doc.index.drawers);
+      assert (List.is_empty doc.index.properties)
+
+let () =
+  match
     Oq.Org.parse_string ~path:"links-tab.org"
       "* Note\nword\thttps://example.com/docs\n"
   with

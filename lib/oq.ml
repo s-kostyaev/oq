@@ -1014,7 +1014,9 @@ module Org = struct
                                  })
                       | None -> (
                           match parse_drawer_open line with
-                          | Some name ->
+                          | Some name
+                            when has_drawer_end_ahead ~lines
+                                   ~start_index:(line_index + 1) ->
                               open_drawer_state :=
                                 Some
                                   {
@@ -1022,6 +1024,7 @@ module Org = struct
                                     start_line = line_index + 1;
                                     heading_id = None;
                                   }
+                          | Some _ -> ()
                           | None -> (
                               match parse_drawer_name line with
                               | Some name
@@ -1309,7 +1312,9 @@ module Org = struct
                                      })
                           | None ->
                               (match parse_drawer_open line with
-                              | Some name ->
+                              | Some name
+                                when has_drawer_end_ahead ~lines
+                                       ~start_index:(line_index + 1) ->
                                   open_drawer_state :=
                                     Some
                                       {
@@ -1317,6 +1322,7 @@ module Org = struct
                                         start_line = line_no;
                                         heading_id = !current_heading_id;
                                       }
+                              | Some _ -> ()
                               | None -> (
                                   match parse_drawer_name line with
                                   | Some name

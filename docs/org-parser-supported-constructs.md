@@ -55,9 +55,10 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
   avoiding false unterminated-drawer errors on plain content.
 - Drawer names are limited to `[A-Za-z0-9_-]+`; tokens like `:+1:` are treated
   as text instead of drawer markers.
-- Known drawers (`PROPERTIES`/`LOGBOOK`, case-insensitive) are recognized directly.
-- Custom `:NAME:` drawers are recognized conservatively when a matching `:END:`
-  appears later in the file; this prevents false opens on isolated plain tokens
+- Known drawers (`PROPERTIES`/`LOGBOOK`, case-insensitive) are recognized
+  conservatively when a matching `:END:` appears later in the file.
+- Custom `:NAME:` drawers are also recognized conservatively with the same
+  `:END:` lookahead rule; this prevents false opens on isolated plain tokens
   while keeping drawer internals opaque to block/link parsing.
 - Drawer markers may be indented with leading whitespace (for example inside
   list context), matching Org behavior.
@@ -139,7 +140,6 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
 
 1. Structural syntax errors
 - Unterminated block -> `syntax_error`.
-- Unterminated drawer -> `syntax_error`.
 - References: `lib/oq.ml`, `test/org_parser_indexing.ml`.
 
 2. Indexing scope limitation for blocks
