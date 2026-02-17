@@ -655,6 +655,8 @@ module Org = struct
         && String.length lower > String.length prefix
       in
       has_prefix "file:"
+      || has_prefix "file+sys:"
+      || has_prefix "file+emacs:"
       || has_prefix "mailto:"
       || has_prefix "id:"
       || has_prefix "custom-id:"

@@ -424,6 +424,23 @@ coderef:label
 
 let () =
   let inline_doc =
+    parse_inline "links-file-plus.org"
+      {|
+* Note
+file+sys:/tmp/report.txt
+file+emacs:/tmp/report.txt
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".links | .length") "2");
+  assert_contains
+    (run_ok inline_doc ".links | map(.target)")
+    "file+sys:/tmp/report.txt";
+  assert_contains
+    (run_ok inline_doc ".links | map(.target)")
+    "file+emacs:/tmp/report.txt"
+
+let () =
+  let inline_doc =
     parse_inline "links-bracket.org"
       {|
 * Links

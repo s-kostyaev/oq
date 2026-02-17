@@ -674,6 +674,24 @@ let () =
 
 let () =
   match
+    Oq.Org.parse_string ~path:"links-file-plus.org"
+      "* Note\nfile+sys:/tmp/report.txt\nfile+emacs:/tmp/report.txt\n"
+  with
+  | Error err ->
+      failwithf "expected file+ plain links parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.links = 2);
+      assert
+        (List.exists doc.index.links ~f:(fun link ->
+             String.equal link.target "file+sys:/tmp/report.txt"));
+      assert
+        (List.exists doc.index.links ~f:(fun link ->
+             String.equal link.target "file+emacs:/tmp/report.txt"))
+
+let () =
+  match
     Oq.Org.parse_string ~path:"links-bracket.org"
       "* Links\n[[https://example.com/docs][Example Docs]]\n"
   with
