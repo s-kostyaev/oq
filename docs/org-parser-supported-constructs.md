@@ -119,6 +119,8 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
 - Repeated link occurrences are preserved (same target repeated on a line is indexed multiple times).
 - Bracket links are not duplicated as plain links.
 - Plain links preserve balanced trailing parentheses in URLs.
+- Leading punctuation before plain links is trimmed (including `.`), while
+  relative file links starting with `./` or `../` are preserved.
 - Trailing sentence punctuation like `!` and `?` is trimmed from plain-link targets.
 - References: `lib/oq.ml:493`, `lib/oq.ml:502`, `lib/oq.ml:629`.
 

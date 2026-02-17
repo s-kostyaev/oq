@@ -735,6 +735,23 @@ Visit https://example.com/docs! and then https://example.com/help?
 
 let () =
   let inline_doc =
+    parse_inline "links-leading-punctuation.org"
+      {|
+* Links
+...https://example.com/docs
+,https://example.com/help
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".links | .length") "2");
+  assert_contains
+    (run_ok inline_doc ".links | map(.target)")
+    "https://example.com/docs";
+  assert_contains
+    (run_ok inline_doc ".links | map(.target)")
+    "https://example.com/help"
+
+let () =
+  let inline_doc =
     parse_inline "links-angle-spaces.org"
       {|
 * Links

@@ -1024,6 +1024,24 @@ let () =
 
 let () =
   match
+    Oq.Org.parse_string ~path:"links-leading-punctuation.org"
+      "* Links\n...https://example.com/docs\n,https://example.com/help\n"
+  with
+  | Error err ->
+      failwithf "expected leading punctuation plain link parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.links = 2);
+      assert
+        (List.exists doc.index.links ~f:(fun link ->
+             String.equal link.target "https://example.com/docs"));
+      assert
+        (List.exists doc.index.links ~f:(fun link ->
+             String.equal link.target "https://example.com/help"))
+
+let () =
+  match
     Oq.Org.parse_string ~path:"links-angle-spaces.org"
       "* Links\n<https://example.com/path with spaces>\n<bbdb:R.* Stallman>\n"
   with

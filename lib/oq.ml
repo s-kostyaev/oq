@@ -620,7 +620,7 @@ module Org = struct
 
   let trim_plain_link_token token =
     let is_leading_trim_char = function
-      | '(' | '[' | '<' | ',' | ';' | ':' | '"' | '\'' -> true
+      | '(' | '[' | '<' | ',' | '.' | ';' | ':' | '"' | '\'' -> true
       | _ -> false
     in
     let is_trailing_trim_char = function
@@ -630,6 +630,15 @@ module Org = struct
     in
     let rec drop_leading index =
       if index >= String.length token then index
+      else if
+        Char.equal token.[index] '.'
+        && index + 1 < String.length token
+        &&
+        (Char.equal token.[index + 1] '/'
+        || (index + 2 < String.length token
+           && Char.equal token.[index + 1] '.'
+           && Char.equal token.[index + 2] '/'))
+      then index
       else if is_leading_trim_char token.[index] then drop_leading (index + 1)
       else index
     in
