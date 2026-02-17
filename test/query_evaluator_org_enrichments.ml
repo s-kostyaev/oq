@@ -272,6 +272,19 @@ HTTPS://example.com/docs
 
 let () =
   let inline_doc =
+    parse_inline "links-generic-scheme.org"
+      {|
+* Note
+ftp://example.com/pub
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".links | .length") "1");
+  assert_contains
+    (run_ok inline_doc ".links | map(.target)")
+    "ftp://example.com/pub"
+
+let () =
+  let inline_doc =
     parse_inline "links-bracket.org"
       {|
 * Links

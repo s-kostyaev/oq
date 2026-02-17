@@ -613,6 +613,30 @@ module Org = struct
     drop_trailing initial
 
   let extract_plain_links line =
+    let is_uri_with_scheme token =
+      match String.substr_index token ~pattern:"://" with
+      | None -> false
+      | Some scheme_end ->
+          let is_scheme_char = function
+            | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '+' | '-' | '.' -> true
+            | _ -> false
+          in
+          let starts_with_alpha =
+            scheme_end > 0
+            &&
+            match token.[0] with
+            | 'a' .. 'z' | 'A' .. 'Z' -> true
+            | _ -> false
+          in
+          starts_with_alpha
+          &&
+          let rec loop index =
+            if index >= scheme_end then true
+            else if is_scheme_char token.[index] then loop (index + 1)
+            else false
+          in
+          loop 1
+    in
     whitespace_tokens line
     |> List.filter_map ~f:(fun token ->
            let looks_like_bracket_fragment =
@@ -623,12 +647,7 @@ module Org = struct
            if looks_like_bracket_fragment then None
            else
              let normalized = trim_plain_link_token token in
-             let lower = String.lowercase normalized in
-             if
-               String.is_prefix lower ~prefix:"http://"
-               || String.is_prefix lower ~prefix:"https://"
-             then Some normalized
-             else None)
+             if is_uri_with_scheme normalized then Some normalized else None)
 
   let extract_bracket_links line =
     let rec loop position acc =
