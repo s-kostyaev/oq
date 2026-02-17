@@ -1,0 +1,6 @@
+(executable
+ (name benchmark_check)
+ (modules benchmark_check)
+ (libraries oq)
+ (preprocess
+  (pps ppx_jane)))

@@ -119,7 +119,7 @@ Source PRD: `/Users/sergeykostyaev/ocaml/oq/docs/PRD-oq-v1.md` (Final v1.0, 2026
 ## 8. Hardening, Performance, and Release (M4, 3-5 days)
 
 1. Profile and optimize hot paths (`.search`, directory traversal, rendering).
-2. Set CI gates:
+2. [DONE] Set CI gates:
    lint + unit + golden + integration + benchmark checks.
 3. [DONE] Add agent E2E test suite:
    scripted scenarios that emulate iterative agent usage and validate stable outputs between runs.

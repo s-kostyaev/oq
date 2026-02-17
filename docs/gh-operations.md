@@ -47,6 +47,8 @@ gh pr merge <pr-number> --squash --delete-branch
 
 ## 3. CI Status Checks
 
+Gate definitions and command mapping live in `docs/ci-gates.md`.
+
 ### 3.1 Repository-wide status
 
 ```bash
