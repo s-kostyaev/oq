@@ -91,13 +91,11 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
   so unsupported internals do not break parsing.
 - Dynamic block closing marker is matched strictly as `#+END:` (case-insensitive),
   so malformed endings like `#+END:foo` do not hide surrounding content.
-- Block openings are recognized conservatively only when a matching closing
-  marker appears before the next heading; otherwise `#+BEGIN_...` text is
-  treated as plain content to avoid false parse failures and heading loss on
-  valid Org files.
-- `COMMENT` blocks are matched by their closing marker even when heading-like
-  lines appear inside, so commented headings are not promoted into
-  `index.headings`.
+- Block openings are recognized when a matching closing marker appears later
+  in the file, so heading-like lines inside closed blocks stay inside block
+  content.
+- Unterminated block openings are handled conservatively as plain content
+  when no matching close marker exists later.
 - Other valid block types (for example `CENTER`, `VERSE`, `COMMENT`) are parsed as opaque regions:
   - they do not fail parsing,
   - they are not added to `index.blocks`.

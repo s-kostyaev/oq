@@ -240,7 +240,7 @@ let () =
       assert (extract_counter stdout "parsed_ok" = 1);
       assert (extract_counter stdout "parse_failed" = 0);
       assert_contains stdout "dynamic-heading-before-end.org:";
-      assert_contains stdout "  2")
+      assert_contains stdout "  1")
 
 let () =
   with_temp_dir (fun root ->
@@ -506,7 +506,7 @@ let () =
       assert (extract_counter stdout "parsed_ok" = 1);
       assert (extract_counter stdout "parse_failed" = 0);
       assert_contains stdout "src-indented-markers.org:";
-      assert_contains stdout "  2")
+      assert_contains stdout "  1")
 
 let () =
   with_temp_dir (fun root ->
@@ -562,7 +562,7 @@ let () =
       assert (extract_counter stdout "parsed_ok" = 1);
       assert (extract_counter stdout "parse_failed" = 0);
       assert_contains stdout "src-heading-before-end.org:";
-      assert_contains stdout "  2")
+      assert_contains stdout "  1")
 
 let () =
   with_temp_dir (fun root ->
@@ -576,7 +576,7 @@ let () =
       assert (extract_counter stdout "parsed_ok" = 1);
       assert (extract_counter stdout "parse_failed" = 0);
       assert_contains stdout "opaque-heading-before-end.org:";
-      assert_contains stdout "  2")
+      assert_contains stdout "  1")
 
 let () =
   with_temp_dir (fun root ->

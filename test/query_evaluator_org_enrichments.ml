@@ -243,8 +243,8 @@ let () =
   #+END_SRC
 |}
   in
-  assert (String.equal (run_ok inline_doc ".headings | .length") "2");
-  assert (String.equal (run_ok inline_doc ".code | .length") "0")
+  assert (String.equal (run_ok inline_doc ".headings | .length") "1");
+  assert (String.equal (run_ok inline_doc ".code | .length") "1")
 
 let () =
   let inline_doc =
@@ -295,8 +295,8 @@ let () =
 #+END_SRC
 |}
   in
-  assert (String.equal (run_ok inline_doc ".headings | .length") "2");
-  assert (String.equal (run_ok inline_doc ".code | .length") "0")
+  assert (String.equal (run_ok inline_doc ".headings | .length") "1");
+  assert (String.equal (run_ok inline_doc ".code | .length") "1")
 
 let () =
   let inline_doc =
@@ -308,7 +308,7 @@ let () =
 #+END_CENTER
 |}
   in
-  assert (String.equal (run_ok inline_doc ".headings | .length") "2");
+  assert (String.equal (run_ok inline_doc ".headings | .length") "1");
   assert (String.equal (run_ok inline_doc ".code | .length") "0")
 
 let () =
@@ -498,7 +498,7 @@ let () =
 #+END:
 |}
   in
-  assert (String.equal (run_ok inline_doc ".headings | .length") "2");
+  assert (String.equal (run_ok inline_doc ".headings | .length") "1");
   assert (String.equal (run_ok inline_doc ".properties | .length") "0")
 
 let () =
