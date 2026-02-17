@@ -15,7 +15,7 @@ Source PRD: `/Users/sergeykostyaev/ocaml/oq/docs/PRD-oq-v1.md` (Final v1.0, 2026
 5. Docs for agents:
    provide ready-to-use query playbooks and failure-recovery guidance for agent loops.
 
-## 0. Repository Bootstrap (Day 0, 0.5-1 day)
+## 0. Repository Bootstrap (Day 0, 0.5-1 day) [DONE]
 
 1. Initialize git repository:
    `git init -b main`.
