@@ -705,6 +705,15 @@ module Org = struct
       String.is_prefix token ~prefix
       && String.length token > String.length prefix
     in
+    let is_windows_drive_path =
+      String.length token > 3
+      &&
+      match token.[0] with
+      | 'a' .. 'z' | 'A' .. 'Z' ->
+          Char.equal token.[1] ':'
+          && (Char.equal token.[2] '/' || Char.equal token.[2] '\\')
+      | _ -> false
+    in
     let is_tilde_path =
       has_prefix "~/"
       ||
@@ -715,7 +724,11 @@ module Org = struct
       | Some index -> index > 1
       | None -> false)
     in
-    has_prefix "/" || has_prefix "./" || has_prefix "../" || is_tilde_path
+    has_prefix "/"
+    || has_prefix "./"
+    || has_prefix "../"
+    || is_tilde_path
+    || is_windows_drive_path
 
   let is_custom_plain_scheme ~custom_link_types token =
     match String.lsplit2 token ~on:':' with

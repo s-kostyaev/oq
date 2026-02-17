@@ -802,6 +802,24 @@ let () =
 
 let () =
   match
+    Oq.Org.parse_string ~path:"links-file-windows.org"
+      "* Note\nC:/work/notes.org\nD:\\docs\\spec.org\n"
+  with
+  | Error err ->
+      failwithf "expected windows file path links parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.links = 2);
+      assert
+        (List.exists doc.index.links ~f:(fun link ->
+             String.equal link.target "C:/work/notes.org"));
+      assert
+        (List.exists doc.index.links ~f:(fun link ->
+             String.equal link.target "D:\\docs\\spec.org"))
+
+let () =
+  match
     Oq.Org.parse_string ~path:"links-more-schemes.org"
       "* Note\nirc:#emacs\ngnus:group\ndocview:/tmp/a.pdf::5\nrmail:Inbox\nbbdb:John_Doe\n"
   with
