@@ -442,7 +442,7 @@ module Org = struct
     && not (String.is_prefix trimmed ~prefix:"#+")
 
   let parse_drawer_open line =
-    let trimmed = String.strip line in
+    let trimmed = String.rstrip line in
     let len = String.length trimmed in
     if len < 3 then None
     else if not (Char.equal trimmed.[0] ':' && Char.equal trimmed.[len - 1] ':')
@@ -456,10 +456,10 @@ module Org = struct
       else if String.Caseless.equal name "END" then None
       else Some name
 
-  let is_drawer_end line = String.Caseless.equal (String.strip line) ":END:"
+  let is_drawer_end line = String.Caseless.equal (String.rstrip line) ":END:"
 
   let parse_property_line line =
-    let trimmed = String.strip line in
+    let trimmed = String.rstrip line in
     if String.length trimmed < 4 || not (Char.equal trimmed.[0] ':') then None
     else
       match String.substr_index ~pos:1 trimmed ~pattern:":" with

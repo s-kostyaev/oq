@@ -482,6 +482,19 @@ let () =
 
 let () =
   match
+    Oq.Org.parse_string ~path:"indented-colon.org"
+      "* Note\n  :foo:\n  literal text\n"
+  with
+  | Error err ->
+      failwithf "expected indented colon parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.headings = 1);
+      assert (List.is_empty doc.index.drawers)
+
+let () =
+  match
     Oq.Org.parse_string ~path:"links-tab.org"
       "* Note\nword\thttps://example.com/docs\n"
   with
