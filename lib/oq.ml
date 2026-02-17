@@ -1829,13 +1829,18 @@ module Eval = struct
     type t = {
       doc : Org.t;
       section_text_by_heading : string Int.Table.t;
+      heading_by_id : Org.heading Int.Table.t;
       date_context : Date_context.t;
     }
 
     let create ?now ?tz doc =
+      let heading_by_id = Int.Table.create () in
+      List.iter doc.index.headings ~f:(fun heading ->
+          Hashtbl.set heading_by_id ~key:heading.id ~data:heading);
       {
         doc;
         section_text_by_heading = Int.Table.create ();
+        heading_by_id;
         date_context = Date_context.create ?now ?tz ();
       }
 
@@ -1843,9 +1848,13 @@ module Eval = struct
       let start_index = Int.max 0 (span.start_line - 1) in
       let end_index = Int.min (Array.length doc.Org.lines) span.end_line in
       if end_index <= start_index then ""
-      else
-        Array.slice doc.Org.lines start_index end_index |> Array.to_list
-        |> String.concat ~sep:"\n"
+      else (
+        let buffer = Buffer.create 256 in
+        for line_index = start_index to end_index - 1 do
+          if line_index > start_index then Buffer.add_char buffer '\n';
+          Buffer.add_string buffer doc.Org.lines.(line_index)
+        done;
+        Buffer.contents buffer)
 
     let section_text t (heading : Org.heading) =
       match Hashtbl.find t.section_text_by_heading heading.id with
@@ -1941,9 +1950,8 @@ module Eval = struct
     | "end_line" -> Value.Int source.span.end_line
     | _ -> failf "unknown source field .%s" field
 
-  let heading_by_id doc heading_id =
-    List.find_exn doc.index.headings ~f:(fun heading ->
-        Int.equal heading.id heading_id)
+  let heading_by_id runtime heading_id =
+    Hashtbl.find_exn runtime.Runtime.heading_by_id heading_id
 
   let parse_section_title_query_prefix raw_title =
     let trimmed = String.strip raw_title in
@@ -2020,7 +2028,7 @@ module Eval = struct
       | "value" -> Value.String property.value
       | "heading_id" -> Value.Int property.heading_id
       | "heading_title" ->
-          let heading = heading_by_id runtime.Runtime.doc property.heading_id in
+          let heading = heading_by_id runtime property.heading_id in
           Value.String heading.title
       | "text" ->
           Value.String
@@ -2035,7 +2043,7 @@ module Eval = struct
       | "value" -> Value.String planning.raw_value
       | "heading_id" -> Value.Int planning.heading_id
       | "heading_title" ->
-          let heading = heading_by_id runtime.Runtime.doc planning.heading_id in
+          let heading = heading_by_id runtime planning.heading_id in
           Value.String heading.title
       | "text" ->
           Value.String
@@ -2186,6 +2194,10 @@ module Eval = struct
     in
     Re2.create_exn ~options pattern
 
+  let compile_literal_search pattern =
+    let options = { Re2.Options.default with case_sensitive = false } in
+    Re2.create_exn ~options (Re2.escape pattern)
+
   let parse_regex_literal raw =
     if not (String.is_prefix raw ~prefix:"/") then None
     else
@@ -2193,11 +2205,6 @@ module Eval = struct
       | Some (prefix, flags) when String.is_prefix prefix ~prefix:"/" ->
           Some (String.drop_prefix prefix 1, flags)
       | _ -> None
-
-  let string_case_insensitive_contains text needle =
-    String.is_substring
-      (String.lowercase text)
-      ~substring:(String.lowercase needle)
 
   let timestamp_time_pattern =
     Re2.create_exn
@@ -2348,10 +2355,7 @@ module Eval = struct
         in
         Value.List (List.map selected ~f:(fun heading -> Value.Heading heading))
     | "sections" ->
-        Value.List
-          (List.map doc.index.sections ~f:(fun section ->
-               let heading = heading_by_id doc section.heading_id in
-               Value.Section { heading; source = section.source }))
+        Value.List (List.map doc.index.headings ~f:section_of_heading)
     | "section" ->
         let raw_title =
           match args with
@@ -2438,7 +2442,8 @@ module Eval = struct
               let regex = compile_regex pattern flags in
               fun text -> Re2.matches regex text
           | None ->
-              fun text -> string_case_insensitive_contains text raw
+              let regex = compile_literal_search raw in
+              fun text -> Re2.matches regex text
         in
         let matched =
           List.filter doc.index.headings ~f:(fun heading ->
@@ -2501,7 +2506,7 @@ module Eval = struct
                       &&
                       if String.equal name "scheduled" || String.equal name "deadline"
                       then
-                        let heading = heading_by_id doc entry.heading_id in
+                        let heading = heading_by_id runtime entry.heading_id in
                         not (heading_is_done doc heading)
                       else true
                   | Some range ->
@@ -2771,10 +2776,7 @@ module Directory = struct
   let is_org_file name = String.is_suffix name ~suffix:".org"
   let normalize_relative_path = Ordering.normalize_relative_path
 
-  let compare_relative_path left right =
-    String.compare
-      (normalize_relative_path left)
-      (normalize_relative_path right)
+  let compare_relative_path left right = String.compare left right
 
   let sort_parsed_docs (docs : parsed_doc list) : parsed_doc list =
     List.sort docs ~compare:(fun (left : parsed_doc) (right : parsed_doc) ->
@@ -2789,45 +2791,19 @@ module Directory = struct
 
   let scan root_path =
     try
-      let counters =
-        ref
-          {
-            candidate_org = 0;
-            parsed_ok = 0;
-            parse_failed = 0;
-            skipped_hidden = 0;
-            skipped_symlink = 0;
-          }
-      in
+      let candidate_org = ref 0 in
+      let parsed_ok = ref 0 in
+      let parse_failed = ref 0 in
+      let skipped_hidden = ref 0 in
+      let skipped_symlink = ref 0 in
       let parsed_docs_rev = ref [] in
       let parse_failures_rev = ref [] in
 
-      let incr_counter f =
-        counters :=
-          {
-            candidate_org = f !counters.candidate_org;
-            parsed_ok = !counters.parsed_ok;
-            parse_failed = !counters.parse_failed;
-            skipped_hidden = !counters.skipped_hidden;
-            skipped_symlink = !counters.skipped_symlink;
-          }
-      in
-      let incr_parsed_ok () =
-        counters := { !counters with parsed_ok = !counters.parsed_ok + 1 }
-      in
-      let incr_parse_failed () =
-        counters := { !counters with parse_failed = !counters.parse_failed + 1 }
-      in
-      let incr_skipped_hidden () =
-        counters := { !counters with skipped_hidden = !counters.skipped_hidden + 1 }
-      in
-      let incr_skipped_symlink () =
-        counters :=
-          { !counters with skipped_symlink = !counters.skipped_symlink + 1 }
-      in
-      let incr_candidate_org () =
-        incr_counter (fun candidate_org -> candidate_org + 1)
-      in
+      let incr_candidate_org () = candidate_org := !candidate_org + 1 in
+      let incr_parsed_ok () = parsed_ok := !parsed_ok + 1 in
+      let incr_parse_failed () = parse_failed := !parse_failed + 1 in
+      let incr_skipped_hidden () = skipped_hidden := !skipped_hidden + 1 in
+      let incr_skipped_symlink () = skipped_symlink := !skipped_symlink + 1 in
 
       let read_all path =
         try In_channel.read_all path
@@ -2837,13 +2813,13 @@ module Directory = struct
 
       let rec walk ~absolute_dir ~relative_dir =
         let names =
-          try Stdlib.Sys.readdir absolute_dir |> Array.to_list
+          try Stdlib.Sys.readdir absolute_dir
           with
           | Sys_error message ->
               io_errorf "failed to read directory %s: %s" absolute_dir message
         in
-        let names = List.sort names ~compare:String.compare in
-        List.iter names ~f:(fun name ->
+        Array.sort ~compare:String.compare names;
+        Array.iter names ~f:(fun name ->
             if String.equal name "." || String.equal name ".." then ()
             else if is_hidden_name name then incr_skipped_hidden ()
             else
@@ -2896,10 +2872,19 @@ module Directory = struct
       let parse_failures =
         List.rev !parse_failures_rev |> sort_parse_failures
       in
+      let counters =
+        {
+          candidate_org = !candidate_org;
+          parsed_ok = !parsed_ok;
+          parse_failed = !parse_failed;
+          skipped_hidden = !skipped_hidden;
+          skipped_symlink = !skipped_symlink;
+        }
+      in
       Ok
         {
           root_path;
-          counters = !counters;
+          counters;
           parsed_docs;
           parse_failures;
         }

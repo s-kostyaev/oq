@@ -50,6 +50,7 @@ oq --strict notes/ ".headings | .length"
 - Agent contract: `docs/agent-contract.md`
 - Agent query cookbook: `docs/agent-playbook.md`
 - CI policy: `docs/ci-gates.md`
+- Performance notes: `docs/performance-notes.md`
 - GitHub workflow guidance: `docs/gh-operations.md`
 - Release pipeline: `docs/release-flow.md`
 

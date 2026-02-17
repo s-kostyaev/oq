@@ -116,9 +116,9 @@ Source PRD: `/Users/sergeykostyaev/ocaml/oq/docs/PRD-oq-v1.md` (Final v1.0, 2026
 6. [DONE] Definition of Done:
    integration tests for zero-candidate, partial-failure, all-failed, and strict-mode paths pass.
 
-## 8. Hardening, Performance, and Release (M4, 3-5 days)
+## 8. Hardening, Performance, and Release (M4, 3-5 days) [DONE]
 
-1. Profile and optimize hot paths (`.search`, directory traversal, rendering).
+1. [DONE] Profile and optimize hot paths (`.search`, directory traversal, rendering).
 2. [DONE] Set CI gates:
    lint + unit + golden + integration + benchmark checks.
 3. [DONE] Add agent E2E test suite:
