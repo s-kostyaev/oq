@@ -49,3 +49,35 @@ jobs:
 
       - name: Benchmark Gate
         run: opam exec -- dune exec bench/benchmark_check.exe
+
+  release-preflight:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup OCaml
+        uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: 5.1.x
+          dune-cache: true
+
+      - name: Install dependencies
+        run: opam install . --deps-only --with-test --yes
+
+      - name: Build release binary
+        run: opam exec -- dune build --profile release @install
+
+      - name: Package release assets
+        shell: bash
+        run: bash scripts/release/package_assets.sh "preflight-${{ github.sha }}"
+
+      - name: Verify release asset set
+        shell: bash
+        run: bash scripts/release/verify_packaged_assets.sh "preflight-${{ github.sha }}"

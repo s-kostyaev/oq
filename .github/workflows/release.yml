@@ -39,7 +39,8 @@ jobs:
       - name: Build release binary
         run: opam exec -- dune build --profile release @install
 
-      - name: Package release assets
+      - name: Resolve release tag
+        id: resolve_tag
         shell: bash
         env:
           TAG_FROM_REF: ${{ github.ref_name }}
@@ -47,40 +48,19 @@ jobs:
           REF_TYPE: ${{ github.ref_type }}
         run: |
           set -euo pipefail
-
           if [[ "$REF_TYPE" == "tag" ]]; then
-            tag="$TAG_FROM_REF"
+            echo "value=$TAG_FROM_REF" >> "$GITHUB_OUTPUT"
           else
-            tag="$TAG_FROM_INPUT"
+            echo "value=$TAG_FROM_INPUT" >> "$GITHUB_OUTPUT"
           fi
 
-          binary_path="_build/install/default/bin/oq"
-          test -x "$binary_path"
+      - name: Package release assets
+        shell: bash
+        run: bash scripts/release/package_assets.sh "${{ steps.resolve_tag.outputs.value }}"
 
-          platform="$(uname -s | tr '[:upper:]' '[:lower:]')"
-          arch="$(uname -m)"
-          case "$arch" in
-            x86_64|amd64) arch="x86_64" ;;
-            arm64|aarch64) arch="arm64" ;;
-          esac
-
-          package_root="oq-${tag}-${platform}-${arch}"
-          dist_dir="dist"
-          payload_dir="${dist_dir}/${package_root}"
-          mkdir -p "$payload_dir"
-
-          cp "$binary_path" "${payload_dir}/oq"
-          cp README.md LICENSE "$payload_dir/"
-
-          archive="${dist_dir}/${package_root}.tar.gz"
-          tar -czf "$archive" -C "$dist_dir" "$package_root"
-
-          checksum="${archive}.sha256"
-          if command -v sha256sum >/dev/null 2>&1; then
-            sha256sum "$archive" > "$checksum"
-          else
-            shasum -a 256 "$archive" > "$checksum"
-          fi
+      - name: Verify packaged assets
+        shell: bash
+        run: bash scripts/release/verify_packaged_assets.sh "${{ steps.resolve_tag.outputs.value }}"
 
       - name: Upload release artifacts
         uses: actions/upload-artifact@v4

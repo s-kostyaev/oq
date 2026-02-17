@@ -11,8 +11,13 @@ This runbook defines the required release order:
 ### 1.1 Prepare
 
 1. Ensure CI is green for `main`.
-2. Ensure `dune build` and `dune runtest` pass locally.
-3. Update versioned notes in `docs/release-notes/<tag>.md` when needed.
+2. Ensure CI `release-preflight` gate is green on both `ubuntu-latest` and `macos-14`.
+3. Ensure `dune build` and `dune runtest` pass locally.
+4. Optionally rerun local release packaging checks:
+   `opam exec -- dune build --profile release @install`,
+   `bash scripts/release/package_assets.sh preflight-local`,
+   `bash scripts/release/verify_packaged_assets.sh preflight-local`.
+5. Update versioned notes in `docs/release-notes/<tag>.md` when needed.
 
 ### 1.2 Trigger
 
