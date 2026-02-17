@@ -11,7 +11,16 @@ QUERY: .tree('full')
 ** Inbox (lines 9:13)
 *** Follow-up (lines 12:13)
 ---
+QUERY: .section('*** Follow-up') | .text
+*** Follow-up
+Child section under the duplicate heading.
+---
 QUERY: .section('Inbox', 6:8) | .text
+** Inbox
+First inbox content to extract in workflow tests.
+
+---
+QUERY: .section('** Inbox', 6:8) | .text
 ** Inbox
 First inbox content to extract in workflow tests.
 

@@ -8,6 +8,9 @@ Hint: use .section("Inbox", 6:8)
 QUERY: .section('Inbox', 1:2)
 section not found for title "Inbox" with span 1:2
 ---
+QUERY: .section('* Follow-up')
+section not found for title "* Follow-up"
+---
 QUERY: .headings[9]
 index 9 out of bounds for length 4
 ---

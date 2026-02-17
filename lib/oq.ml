@@ -1954,6 +1954,30 @@ module Eval = struct
     List.find_exn doc.index.headings ~f:(fun heading ->
         Int.equal heading.id heading_id)
 
+  let parse_section_title_query raw_title =
+    let trimmed = String.strip raw_title in
+    let length = String.length trimmed in
+    let rec consume_stars index =
+      if index < length && Char.equal trimmed.[index] '*' then
+        consume_stars (index + 1)
+      else index
+    in
+    let star_count = consume_stars 0 in
+    if
+      star_count > 0 && star_count < length
+      && Char.is_whitespace trimmed.[star_count]
+    then
+      let rec consume_whitespace index =
+        if index < length && Char.is_whitespace trimmed.[index] then
+          consume_whitespace (index + 1)
+        else index
+      in
+      let title_start = consume_whitespace star_count in
+      if title_start >= length then (None, trimmed)
+      else
+        (Some star_count, String.drop_prefix trimmed title_start |> String.strip)
+    else (None, trimmed)
+
   let heading_field_value runtime (heading : Org.heading) field =
     match field with
     | "id" -> Value.Int heading.id
@@ -2324,19 +2348,24 @@ module Eval = struct
                let heading = heading_by_id doc section.heading_id in
                Value.Section { heading; source = section.source }))
     | "section" ->
-        let title =
+        let raw_title =
           match args with
           | first :: _ -> selector_arg_string_exn name 1 first
           | [] -> failf ".section expects 1 or 2 arguments"
         in
+        let requested_level, title = parse_section_title_query raw_title in
         let matches =
           List.filter doc.index.headings ~f:(fun heading ->
-              String.equal heading.title title)
+              String.equal heading.title title
+              &&
+              match requested_level with
+              | None -> true
+              | Some level -> Int.equal heading.level level)
         in
         (match args with
         | [ _ ] -> (
             match matches with
-            | [] -> failf "section not found for title %S" title
+            | [] -> failf "section not found for title %S" raw_title
             | [ heading ] -> section_of_heading heading
             | candidates ->
                 let formatted =
@@ -2357,7 +2386,7 @@ module Eval = struct
             (match disambiguated with
             | Some heading -> section_of_heading heading
             | None ->
-                failf "section not found for title %S with span %d:%d" title
+                failf "section not found for title %S with span %d:%d" raw_title
                   requested_start requested_end)
         | _ -> failf ".section expects 1 or 2 arguments")
     | "section_contains" ->
