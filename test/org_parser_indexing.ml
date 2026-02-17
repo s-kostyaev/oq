@@ -382,6 +382,17 @@ let () =
 
 let () =
   match
+    Oq.Org.parse_string ~path:"planning-combined-lower.org"
+      "* TODO Combined planning\nscheduled: <2026-02-18 Wed> deadline: <2026-02-20 Fri> closed: [2026-02-21 Sat]\n"
+  with
+  | Error err ->
+      failwithf "expected lowercase combined planning parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc -> assert (List.length doc.index.planning = 3)
+
+let () =
+  match
     Oq.Org.parse_string ~path:"planning-in-text.org"
       "* Note\nThis sentence mentions SCHEDULED: <2026-02-18 Wed> but is plain text.\n"
   with

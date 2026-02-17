@@ -37,6 +37,7 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
 - `SCHEDULED: ...`
 - `DEADLINE: ...`
 - `CLOSED: ...`
+- Planning keywords are matched case-insensitively (`scheduled:`/`deadline:`/`closed:` also work).
 - Stored as `planning_entry` values with `raw_value`.
 - Multiple planning keywords on one line are split correctly into separate values.
 - Planning keywords are recognized only on planning lines

@@ -658,17 +658,18 @@ module Org = struct
 
   let parse_planning_on_line line =
     let trimmed = String.lstrip line in
+    let normalized = String.uppercase trimmed in
     let starts_with_planning_keyword =
-      String.is_prefix trimmed ~prefix:"SCHEDULED:"
-      || String.is_prefix trimmed ~prefix:"DEADLINE:"
-      || String.is_prefix trimmed ~prefix:"CLOSED:"
+      String.is_prefix normalized ~prefix:"SCHEDULED:"
+      || String.is_prefix normalized ~prefix:"DEADLINE:"
+      || String.is_prefix normalized ~prefix:"CLOSED:"
     in
     if not starts_with_planning_keyword then []
     else
     let markers =
       [ (Scheduled, "SCHEDULED:"); (Deadline, "DEADLINE:"); (Closed, "CLOSED:") ]
       |> List.filter_map ~f:(fun (kind, pattern) ->
-             Option.map (String.substr_index trimmed ~pattern) ~f:(fun index ->
+             Option.map (String.substr_index normalized ~pattern) ~f:(fun index ->
                  (kind, index, String.length pattern)))
       |> List.sort ~compare:(fun (_, left, _) (_, right, _) ->
              Int.compare left right)

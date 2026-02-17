@@ -297,6 +297,20 @@ let () =
 let () =
   with_temp_dir (fun root ->
       ignore
+        (write_file root "planning-lower.org"
+           "* TODO Combined planning\nscheduled: <2026-02-18 Wed>\n");
+      let outcome = run_directory ~query:(Some ".scheduled | .length") root in
+      assert_exit outcome Oq.Exit_code.Success;
+      let stdout = require_stdout outcome in
+      assert (extract_counter stdout "candidate_org" = 1);
+      assert (extract_counter stdout "parsed_ok" = 1);
+      assert (extract_counter stdout "parse_failed" = 0);
+      assert_contains stdout "planning-lower.org:";
+      assert_contains stdout "  1")
+
+let () =
+  with_temp_dir (fun root ->
+      ignore
         (write_file root "seq-typ-todo.org"
            "#+SEQ_TODO: NEXT WAIT | DONE\n#+TYP_TODO: IDEA BLOCKED | ARCHIVED\n* NEXT seq item\n* IDEA type item\n* ARCHIVED archived item\n");
       let outcome = run_directory ~query:(Some ".todos | .length") root in
