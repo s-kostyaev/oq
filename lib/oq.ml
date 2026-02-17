@@ -1643,6 +1643,8 @@ module Eval = struct
 
   exception Failure of string
 
+  let failf fmt = Printf.ksprintf (fun message -> raise (Failure message)) fmt
+
   module Value = struct
     type section = {
       heading : Org.heading;
@@ -1653,6 +1655,11 @@ module Eval = struct
       | Document of Org.t
       | Heading of Org.heading
       | Section of section
+      | Property of Org.property
+      | Planning of Org.planning_entry
+      | Block of Org.block
+      | Link of Org.link
+      | Table of Org.table
       | String of string
       | Int of int
       | Float of float
@@ -1661,13 +1668,175 @@ module Eval = struct
       | List of t list
   end
 
+  module Date_context = struct
+    type range =
+      | Today
+      | Tomorrow
+      | Yesterday
+      | This_week
+      | Next_7d
+      | Overdue
+
+    type t = {
+      zone : Time_float_unix.Zone.t;
+      now : Time_float_unix.t;
+      day_start_date : Date.t;
+      day_start : Time_float_unix.t;
+      week_start_date : Date.t;
+      week_start : Time_float_unix.t;
+    }
+
+    let midnight = Time_float.Ofday.of_string "00:00:00"
+
+    let strict_now_pattern =
+      Re2.create_exn
+        "^([0-9]{4}-[0-9]{2}-[0-9]{2})T([0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?)(Z|[+-][0-9]{2}:[0-9]{2})$"
+
+    let offset_suffix_pattern = Re2.create_exn "(Z|[+-][0-9]{2}:[0-9]{2})$"
+
+    let invalid_now now_value =
+      failf
+        "invalid --now value %S (expected RFC3339 with explicit offset, for \
+         example 2026-02-17T10:30:00-08:00)"
+        now_value
+
+    let normalize_offset offset =
+      if String.equal offset "Z" then "+00:00" else offset
+
+    let zone_from_tz = function
+      | None -> Lazy.force Time_float_unix.Zone.local
+      | Some tz -> (
+          match Time_float_unix.Zone.find tz with
+          | Some zone -> zone
+          | None ->
+              failf "invalid --tz value %S (expected an IANA timezone)" tz)
+
+    let parse_now_parts now_value =
+      if not (Re2.matches strict_now_pattern now_value) then invalid_now now_value;
+      let groups = Re2.find_submatches_exn strict_now_pattern now_value in
+      match groups with
+      | [| Some _; Some date; Some ofday; Some offset |] ->
+          (date, ofday, normalize_offset offset)
+      | _ -> invalid_now now_value
+
+    let parse_absolute_now now_value =
+      if not (Re2.matches strict_now_pattern now_value) then invalid_now now_value;
+      try Time_float_unix.of_string_abs now_value
+      with
+      | _ -> invalid_now now_value
+
+    let offset_of_time ~zone time =
+      let rendered = Time_float_unix.to_string_abs_parts ~zone time in
+      match rendered with
+      | _date :: ofday_with_offset :: _ -> (
+          let groups = Re2.find_submatches_exn offset_suffix_pattern ofday_with_offset in
+          match groups with
+          | [| Some _; Some offset |] -> normalize_offset offset
+          | _ ->
+              failf
+                "internal error: could not extract timezone offset from %S"
+                ofday_with_offset)
+      | _ ->
+          failf
+            "internal error: unexpected Time_float_unix.to_string_abs_parts shape"
+
+    let parse_local_civil_now ~zone now_value =
+      let date_text, ofday_text, provided_offset = parse_now_parts now_value in
+      let date =
+        try Date.of_string date_text
+        with
+        | _ -> invalid_now now_value
+      in
+      let ofday =
+        try Time_float.Ofday.of_string ofday_text
+        with
+        | _ -> invalid_now now_value
+      in
+      let anchored = Time_float_unix.of_date_ofday ~zone date ofday in
+      let expected_offset = offset_of_time ~zone anchored in
+      if not (String.equal expected_offset provided_offset) then
+        failf
+          "offset mismatch between --now (%s) and --tz (%s) at local datetime \
+           %sT%s"
+          provided_offset
+          (Time_float_unix.Zone.to_string zone)
+          date_text ofday_text;
+      anchored
+
+    let monday_start date =
+      let weekday = Date.day_of_week date in
+      let days_since_monday = Day_of_week.iso_8601_weekday_number weekday - 1 in
+      Date.add_days date (-days_since_monday)
+
+    let create ?now ?tz () =
+      let zone = zone_from_tz tz in
+      let now_time =
+        match (now, tz) with
+        | None, _ -> Time_float_unix.now ()
+        | Some now_value, None -> parse_absolute_now now_value
+        | Some now_value, Some _ -> parse_local_civil_now ~zone now_value
+      in
+      let day_start_date = Date.of_time now_time ~zone in
+      let day_start = Time_float_unix.of_date_ofday ~zone day_start_date midnight in
+      let week_start_date = monday_start day_start_date in
+      let week_start = Time_float_unix.of_date_ofday ~zone week_start_date midnight in
+      { zone; now = now_time; day_start_date; day_start; week_start_date; week_start }
+
+    let parse_range ~selector ~allow_overdue range =
+      match range with
+      | "today" -> Today
+      | "tomorrow" -> Tomorrow
+      | "yesterday" -> Yesterday
+      | "this_week" -> This_week
+      | "next_7d" -> Next_7d
+      | "overdue" when allow_overdue -> Overdue
+      | "overdue" ->
+          failf
+            "invalid .%s range %S (supported: \
+             today|tomorrow|yesterday|this_week|next_7d)"
+            selector range
+      | _ ->
+          failf
+            "invalid .%s range %S (supported: \
+             today|tomorrow|yesterday|this_week|next_7d%s)"
+            selector range
+            (if allow_overdue then "|overdue" else "")
+
+    let time_of_date t date = Time_float_unix.of_date_ofday ~zone:t.zone date midnight
+
+    let range_bounds t = function
+      | Today ->
+          let stop = time_of_date t (Date.add_days t.day_start_date 1) in
+          (t.day_start, stop)
+      | Tomorrow ->
+          let start = time_of_date t (Date.add_days t.day_start_date 1) in
+          let stop = time_of_date t (Date.add_days t.day_start_date 2) in
+          (start, stop)
+      | Yesterday ->
+          let start = time_of_date t (Date.add_days t.day_start_date (-1)) in
+          (start, t.day_start)
+      | This_week ->
+          let stop = time_of_date t (Date.add_days t.week_start_date 7) in
+          (t.week_start, stop)
+      | Next_7d ->
+          let stop = time_of_date t (Date.add_days t.day_start_date 7) in
+          (t.day_start, stop)
+      | Overdue -> failf "internal error: overdue has no closed interval bounds"
+  end
+
   module Runtime = struct
     type t = {
       doc : Org.t;
       section_text_by_heading : string Int.Table.t;
+      date_context : Date_context.t;
     }
 
-    let create doc = { doc; section_text_by_heading = Int.Table.create () }
+    let create ?now ?tz doc =
+      {
+        doc;
+        section_text_by_heading = Int.Table.create ();
+        date_context = Date_context.create ?now ?tz ();
+      }
 
     let text_for_span doc (span : Org.Span.t) =
       let start_index = Int.max 0 (span.start_line - 1) in
@@ -1686,8 +1855,6 @@ module Eval = struct
           text
   end
 
-  let failf fmt = Printf.ksprintf (fun message -> raise (Failure message)) fmt
-
   let section_of_heading (heading : Org.heading) =
     Value.Section { heading; source = heading.section_source }
 
@@ -1703,6 +1870,11 @@ module Eval = struct
     | Value.Document _ -> "document"
     | Value.Heading _ -> "heading"
     | Value.Section _ -> "section"
+    | Value.Property _ -> "property"
+    | Value.Planning _ -> "planning"
+    | Value.Block _ -> "block"
+    | Value.Link _ -> "link"
+    | Value.Table _ -> "table"
     | Value.String _ -> "string"
     | Value.Int _ -> "int"
     | Value.Float _ -> "float"
@@ -1745,6 +1917,31 @@ module Eval = struct
     | _ ->
         failf "wrong type for .%s argument %d: expected span start:end" name index
 
+  let planning_kind_to_string = function
+    | Org.Scheduled -> "scheduled"
+    | Org.Deadline -> "deadline"
+    | Org.Closed -> "closed"
+
+  let block_kind_to_string = function
+    | Org.Src -> "src"
+    | Org.Example -> "example"
+    | Org.Quote -> "quote"
+
+  let link_kind_to_string = function
+    | Org.Bracket -> "bracket"
+    | Org.Plain -> "plain"
+
+  let source_field_value (source : Org.Source_ref.t) field =
+    match field with
+    | "path" -> Value.String source.path
+    | "start_line" -> Value.Int source.span.start_line
+    | "end_line" -> Value.Int source.span.end_line
+    | _ -> failf "unknown source field .%s" field
+
+  let heading_by_id doc heading_id =
+    List.find_exn doc.index.headings ~f:(fun heading ->
+        Int.equal heading.id heading_id)
+
   let heading_field_value runtime (heading : Org.heading) field =
     match field with
     | "id" -> Value.Int heading.id
@@ -1767,6 +1964,88 @@ module Eval = struct
     | _ -> failf "unknown field .%s for heading" field
 
   let field_value runtime value field =
+    let property_field_value (property : Org.property) =
+      match field with
+      | "key" -> Value.String property.key
+      | "value" -> Value.String property.value
+      | "heading_id" -> Value.Int property.heading_id
+      | "heading_title" ->
+          let heading = heading_by_id runtime.Runtime.doc property.heading_id in
+          Value.String heading.title
+      | "text" ->
+          Value.String
+            (Runtime.text_for_span runtime.Runtime.doc property.source.span)
+      | "path" | "start_line" | "end_line" ->
+          source_field_value property.source field
+      | _ -> failf "unknown field .%s for property" field
+    in
+    let planning_field_value (planning : Org.planning_entry) =
+      match field with
+      | "kind" -> Value.String (planning_kind_to_string planning.kind)
+      | "value" -> Value.String planning.raw_value
+      | "heading_id" -> Value.Int planning.heading_id
+      | "heading_title" ->
+          let heading = heading_by_id runtime.Runtime.doc planning.heading_id in
+          Value.String heading.title
+      | "text" ->
+          Value.String
+            (Runtime.text_for_span runtime.Runtime.doc planning.source.span)
+      | "path" | "start_line" | "end_line" ->
+          source_field_value planning.source field
+      | _ -> failf "unknown field .%s for planning" field
+    in
+    let block_field_value (block : Org.block) =
+      match field with
+      | "kind" -> Value.String (block_kind_to_string block.kind)
+      | "language" -> (
+          match block.language with
+          | Some language -> Value.String language
+          | None -> Value.Null)
+      | "heading_id" -> (
+          match block.heading_id with
+          | Some heading_id -> Value.Int heading_id
+          | None -> Value.Null)
+      | "text" ->
+          Value.String (Runtime.text_for_span runtime.Runtime.doc block.source.span)
+      | "path" | "start_line" | "end_line" ->
+          source_field_value block.source field
+      | _ -> failf "unknown field .%s for block" field
+    in
+    let link_field_value (link : Org.link) =
+      match field with
+      | "kind" -> Value.String (link_kind_to_string link.kind)
+      | "target" -> Value.String link.target
+      | "description" -> (
+          match link.description with
+          | Some description -> Value.String description
+          | None -> Value.Null)
+      | "heading_id" -> (
+          match link.heading_id with
+          | Some heading_id -> Value.Int heading_id
+          | None -> Value.Null)
+      | "text" ->
+          Value.String (Runtime.text_for_span runtime.Runtime.doc link.source.span)
+      | "path" | "start_line" | "end_line" ->
+          source_field_value link.source field
+      | _ -> failf "unknown field .%s for link" field
+    in
+    let table_field_value (table : Org.table) =
+      match field with
+      | "rows" ->
+          Value.List
+            (List.map table.rows ~f:(fun row ->
+                 Value.List (List.map row ~f:(fun cell -> Value.String cell))))
+      | "row_count" -> Value.Int (List.length table.rows)
+      | "heading_id" -> (
+          match table.heading_id with
+          | Some heading_id -> Value.Int heading_id
+          | None -> Value.Null)
+      | "text" ->
+          Value.String (Runtime.text_for_span runtime.Runtime.doc table.source.span)
+      | "path" | "start_line" | "end_line" ->
+          source_field_value table.source field
+      | _ -> failf "unknown field .%s for table" field
+    in
     let section_field_value (section : Value.section) =
       match field with
       | "source_start_line" -> Value.Int section.source.span.start_line
@@ -1776,6 +2055,11 @@ module Eval = struct
     match value with
     | Value.Heading heading -> heading_field_value runtime heading field
     | Value.Section section -> section_field_value section
+    | Value.Property property -> property_field_value property
+    | Value.Planning planning -> planning_field_value planning
+    | Value.Block block -> block_field_value block
+    | Value.Link link -> link_field_value link
+    | Value.Table table -> table_field_value table
     | _ -> failf "unknown field .%s for %s" field (type_name value)
 
   let float_of_numeric = function
@@ -1864,9 +2148,80 @@ module Eval = struct
       (String.lowercase text)
       ~substring:(String.lowercase needle)
 
-  let heading_by_id doc heading_id =
-    List.find_exn doc.index.headings ~f:(fun heading ->
-        Int.equal heading.id heading_id)
+  let timestamp_time_pattern =
+    Re2.create_exn
+      "^[0-9]{2}:[0-9]{2}(?::[0-9]{2})?(?:-[0-9]{2}:[0-9]{2}(?::[0-9]{2})?)?$"
+
+  let parse_org_timestamp ~zone raw_value =
+    let trimmed = String.strip raw_value in
+    let content =
+      if String.is_empty trimmed then None
+      else
+        let close_char =
+          match String.get trimmed 0 with
+          | '<' -> Some '>'
+          | '[' -> Some ']'
+          | _ -> None
+        in
+        match close_char with
+        | Some close_char -> (
+            match String.index trimmed close_char with
+            | Some close_index when close_index > 1 ->
+                Some (String.sub trimmed ~pos:1 ~len:(close_index - 1))
+            | _ -> None)
+        | None -> None
+    in
+    match content with
+    | None -> None
+    | Some body ->
+        let tokens =
+          String.split body ~on:' '
+          |> List.filter ~f:(fun token -> not (String.is_empty token))
+        in
+        (match tokens with
+        | date_token :: rest -> (
+            match Or_error.try_with (fun () -> Date.of_string date_token) with
+            | Error _ -> None
+            | Ok date ->
+                let ofday =
+                  match
+                    List.find rest ~f:(fun token ->
+                        Re2.matches timestamp_time_pattern token)
+                  with
+                  | None -> Some Date_context.midnight
+                  | Some token ->
+                      let base =
+                        match String.lsplit2 token ~on:'-' with
+                        | Some (start_time, _) -> start_time
+                        | None -> token
+                      in
+                      let normalized =
+                        if String.count base ~f:(Char.equal ':') = 1 then
+                          base ^ ":00"
+                        else base
+                      in
+                      Option.try_with (fun () -> Time_float.Ofday.of_string normalized)
+                in
+                Option.map ofday ~f:(fun parsed_ofday ->
+                    Time_float_unix.of_date_ofday ~zone date parsed_ofday))
+        | [] -> None)
+
+  let heading_is_done doc (heading : Org.heading) =
+    match heading.todo_keyword with
+    | None -> false
+    | Some state ->
+        List.mem doc.todo_config.done_states state ~equal:String.equal
+
+  let heading_is_open doc (heading : Org.heading) =
+    match heading.todo_keyword with
+    | None -> false
+    | Some state ->
+        List.mem doc.todo_config.open_states state ~equal:String.equal
+
+  let heading_values_from_id_set doc id_set =
+    doc.index.headings
+    |> List.filter ~f:(fun heading -> Hash_set.mem id_set heading.id)
+    |> List.map ~f:(fun heading -> Value.Heading heading)
 
   let rec eval_expr runtime current = function
     | Ast.Literal (Ast.String text) -> Value.String text
@@ -2003,27 +2358,153 @@ module Eval = struct
               matcher (Runtime.section_text runtime heading))
         in
         Value.List (List.map matched ~f:section_of_heading)
+    | "todos" ->
+        let selected = List.filter doc.index.headings ~f:(heading_is_open doc) in
+        Value.List (List.map selected ~f:(fun heading -> Value.Heading heading))
+    | "done" ->
+        let selected = List.filter doc.index.headings ~f:(heading_is_done doc) in
+        Value.List (List.map selected ~f:(fun heading -> Value.Heading heading))
+    | "properties" ->
+        Value.List
+          (List.map doc.index.properties ~f:(fun property -> Value.Property property))
+    | "property" ->
+        let key =
+          match args with
+          | [ arg ] -> selector_arg_string_exn name 1 arg
+          | _ -> failf ".property expects exactly 1 argument"
+        in
+        let selected =
+          List.filter doc.index.properties ~f:(fun property ->
+              String.equal property.key key)
+        in
+        Value.List (List.map selected ~f:(fun property -> Value.Property property))
+    | "scheduled" | "deadline" | "closed" ->
+        let planning_kind =
+          match name with
+          | "scheduled" -> Org.Scheduled
+          | "deadline" -> Org.Deadline
+          | "closed" -> Org.Closed
+          | _ -> assert false
+        in
+        let range =
+          match args with
+          | [] -> None
+          | [ arg ] ->
+              let range_text = selector_arg_string_exn name 1 arg in
+              Some
+                (Date_context.parse_range ~selector:name
+                   ~allow_overdue:(not (String.equal name "closed"))
+                   range_text)
+          | _ -> failf ".%s expects at most 1 argument" name
+        in
+        let date_context = runtime.Runtime.date_context in
+        let entries =
+          List.filter doc.index.planning ~f:(fun entry ->
+              Poly.equal entry.kind planning_kind)
+        in
+        let matched_entries =
+          List.filter entries ~f:(fun entry ->
+              match parse_org_timestamp ~zone:date_context.zone entry.raw_value with
+              | None -> false
+              | Some timestamp -> (
+                  match range with
+                  | None -> true
+                  | Some Date_context.Overdue ->
+                      Time_float.compare timestamp date_context.day_start < 0
+                      &&
+                      if String.equal name "scheduled" || String.equal name "deadline"
+                      then
+                        let heading = heading_by_id doc entry.heading_id in
+                        not (heading_is_done doc heading)
+                      else true
+                  | Some range ->
+                      let start_time, stop_time =
+                        Date_context.range_bounds date_context range
+                      in
+                      Time_float.compare timestamp start_time >= 0
+                      && Time_float.compare timestamp stop_time < 0))
+        in
+        let heading_ids = Int.Hash_set.create () in
+        List.iter matched_entries ~f:(fun entry ->
+            Hash_set.add heading_ids entry.heading_id);
+        Value.List (heading_values_from_id_set doc heading_ids)
+    | "tags" ->
+        let seen = String.Hash_set.create () in
+        let tags =
+          List.concat_map doc.index.headings ~f:(fun heading -> heading.tags)
+          |> List.filter ~f:(fun tag ->
+                 if Hash_set.mem seen tag then false
+                 else (
+                   Hash_set.add seen tag;
+                   true))
+        in
+        Value.List (List.map tags ~f:(fun tag -> Value.String tag))
+    | "code" ->
+        let language_filter =
+          match args with
+          | [] -> None
+          | [ arg ] -> Some (selector_arg_string_exn name 1 arg)
+          | _ -> failf ".code expects at most 1 argument"
+        in
+        let selected =
+          List.filter doc.index.blocks ~f:(fun block ->
+              Poly.equal block.kind Org.Src
+              &&
+              match language_filter with
+              | None -> true
+              | Some expected -> (
+                  match block.language with
+                  | Some actual -> String.equal actual expected
+                  | None -> false))
+        in
+        Value.List (List.map selected ~f:(fun block -> Value.Block block))
+    | "links" ->
+        Value.List (List.map doc.index.links ~f:(fun link -> Value.Link link))
+    | "tables" ->
+        Value.List (List.map doc.index.tables ~f:(fun table -> Value.Table table))
     | "text" -> (
+        let text_of_value value =
+          match value with
+          | Value.Document value ->
+              Some (String.concat ~sep:"\n" (Array.to_list value.Org.lines))
+          | Value.Heading heading -> Some (Runtime.section_text runtime heading)
+          | Value.Section section -> Some (Runtime.section_text runtime section.heading)
+          | Value.Property property ->
+              Some
+                (Runtime.text_for_span runtime.Runtime.doc property.source.span)
+          | Value.Planning planning ->
+              Some
+                (Runtime.text_for_span runtime.Runtime.doc planning.source.span)
+          | Value.Block block ->
+              Some (Runtime.text_for_span runtime.Runtime.doc block.source.span)
+          | Value.Link link ->
+              Some (Runtime.text_for_span runtime.Runtime.doc link.source.span)
+          | Value.Table table ->
+              Some (Runtime.text_for_span runtime.Runtime.doc table.source.span)
+          | _ -> None
+        in
         match current with
-        | Value.Document value ->
-            Value.String
-              (String.concat ~sep:"\n" (Array.to_list value.Org.lines))
-        | Value.Heading heading ->
-            Value.String (Runtime.section_text runtime heading)
-        | Value.Section section ->
-            Value.String (Runtime.section_text runtime section.heading)
+        | Value.Document _
+        | Value.Heading _
+        | Value.Section _
+        | Value.Property _
+        | Value.Planning _
+        | Value.Block _
+        | Value.Link _
+        | Value.Table _ -> (
+            match text_of_value current with
+            | Some text -> Value.String text
+            | None ->
+                failf "wrong type: .text is not supported for %s" (type_name current))
         | Value.List values ->
             Value.List
               (List.map values ~f:(fun value ->
-                   match value with
-                   | Value.Heading heading ->
-                       Value.String (Runtime.section_text runtime heading)
-                   | Value.Section section ->
-                       Value.String (Runtime.section_text runtime section.heading)
-                   | _ ->
+                   match text_of_value value with
+                   | Some text -> Value.String text
+                   | None ->
                        failf
-                         "wrong type: .text on list requires heading/section \
-                          elements"))
+                         "wrong type: .text on list requires element types that \
+                          have source text"))
         | value ->
             failf "wrong type: .text is not supported for %s" (type_name value))
     | "length" -> (
@@ -2032,9 +2513,6 @@ module Eval = struct
         | Value.String text -> Value.Int (String.length text)
         | value ->
             failf "wrong type: .length is not supported for %s" (type_name value))
-    | "todos" | "done" | "properties" | "property" | "scheduled" | "deadline"
-    | "closed" | "tags" | "code" | "links" | "tables" ->
-        failf "selector .%s is not implemented yet" name
     | _ -> failf "unknown selector .%s" name
 
   let apply_index values raw_index =
@@ -2099,16 +2577,16 @@ module Eval = struct
     in
     List.fold postfixes ~init:base ~f:(apply_postfix runtime)
 
-  let eval ~doc stages =
-    let runtime = Runtime.create doc in
+  let eval ?now ?tz ~doc stages =
+    let runtime = Runtime.create ?now ?tz doc in
     List.fold stages ~init:(Value.Document doc) ~f:(fun current stage ->
         apply_stage runtime stage current)
 
-  let run ~doc query =
+  let run ?now ?tz ~doc query =
     match Query.parse query with
     | Error error -> Error (Query_parse_error error)
     | Ok stages -> (
-        try Ok (eval ~doc stages) with
+        try Ok (eval ?now ?tz ~doc stages) with
         | Failure message -> Error (Eval_error message))
 
   let render_scalar = function
@@ -2123,6 +2601,29 @@ module Eval = struct
     | Value.Section section ->
         sprintf "%s (lines %d:%d)" section.heading.title
           section.source.span.start_line section.source.span.end_line
+    | Value.Property property ->
+        sprintf "%s=%s (lines %d:%d)" property.key property.value
+          property.source.span.start_line property.source.span.end_line
+    | Value.Planning planning ->
+        sprintf "%s %s (lines %d:%d)"
+          (String.uppercase (planning_kind_to_string planning.kind))
+          planning.raw_value planning.source.span.start_line
+          planning.source.span.end_line
+    | Value.Block block ->
+        let kind = block_kind_to_string block.kind in
+        let language =
+          match block.language with
+          | Some language -> ":" ^ language
+          | None -> ""
+        in
+        sprintf "%s%s (lines %d:%d)" kind language block.source.span.start_line
+          block.source.span.end_line
+    | Value.Link link ->
+        sprintf "%s (lines %d:%d)" link.target link.source.span.start_line
+          link.source.span.end_line
+    | Value.Table table ->
+        sprintf "table rows=%d (lines %d:%d)" (List.length table.rows)
+          table.source.span.start_line table.source.span.end_line
     | Value.Document doc -> sprintf "Document(%s)" doc.path
     | Value.List _ -> failf "internal error: expected scalar value for rendering"
 
@@ -2131,8 +2632,8 @@ module Eval = struct
     | Value.List values -> List.map values ~f:render_scalar |> String.concat ~sep:"\n"
     | _ -> render_scalar value
 
-  let run_text ~doc query =
-    match run ~doc query with
+  let run_text ?now ?tz ~doc query =
+    match run ?now ?tz ~doc query with
     | Ok value -> Ok (render_text value)
     | Error (Query_parse_error { message; position }) ->
         Error (sprintf "query parse error at %d: %s" position message)

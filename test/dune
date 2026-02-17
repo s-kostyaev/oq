@@ -64,3 +64,12 @@
   (glob_files_rec fixtures/*.org))
  (preprocess
   (pps ppx_jane)))
+
+(test
+ (name query_evaluator_org_enrichments)
+ (modules query_evaluator_org_enrichments)
+ (libraries oq)
+ (deps
+  (glob_files_rec fixtures/*.org))
+ (preprocess
+  (pps ppx_jane)))

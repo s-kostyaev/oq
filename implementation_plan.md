@@ -89,17 +89,17 @@ Source PRD: `/Users/sergeykostyaev/ocaml/oq/docs/PRD-oq-v1.md` (Final v1.0, 2026
 5. [DONE] Definition of Done:
    golden tests for core queries and canonical errors pass.
 
-## 6. Org-Specific Selectors and Date Semantics (M3, 5-6 days)
+## 6. Org-Specific Selectors and Date Semantics (M3, 5-6 days) [DONE]
 
-1. Implement selectors:
+1. [DONE] Implement selectors:
    `.todos`, `.done`, `.properties`, `.property("KEY")`, `.tags`, `.code("lang")`, `.links`, `.tables`.
-2. Implement planning selectors:
+2. [DONE] Implement planning selectors:
    `.scheduled`, `.deadline`, `.closed` with ranges `today`, `tomorrow`, `yesterday`, `this_week`, `next_7d`, `overdue`.
-3. Implement deterministic time options:
+3. [DONE] Implement deterministic time options:
    `--now <RFC3339>` and `--tz <IANA_TZ>` with offset mismatch validation.
-4. Validate agent-oriented date reproducibility:
+4. [DONE] Validate agent-oriented date reproducibility:
    same query with fixed `--now`/`--tz` must produce byte-stable output.
-5. Definition of Done:
+5. [DONE] Definition of Done:
    deterministic boundary tests around midnight/week start and overdue behavior pass.
 
 ## 7. Directory Mode and Deterministic Ordering (M3-M4, 4-5 days)

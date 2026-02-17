@@ -1,0 +1,135 @@
+open Core
+
+let read_test_file relative_path =
+  let candidates =
+    [
+      Filename.concat (Filename.dirname __FILE__) relative_path;
+      Filename.concat (Stdlib.Sys.getcwd ()) (Filename.concat "test" relative_path);
+      Filename.concat (Stdlib.Sys.getcwd ()) relative_path;
+    ]
+  in
+  match List.find candidates ~f:Stdlib.Sys.file_exists with
+  | Some path -> In_channel.read_all path
+  | None ->
+      failwithf "unable to locate test file %s (checked %s)" relative_path
+        (String.concat ~sep:", " candidates) ()
+
+let parse_fixture relative_path =
+  let content = read_test_file relative_path in
+  match Oq.Org.parse_string ~path:relative_path content with
+  | Ok doc -> doc
+  | Error err ->
+      failwithf "unexpected parse failure for %s: %s (%s)" relative_path
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+
+let parse_inline path content =
+  match Oq.Org.parse_string ~path content with
+  | Ok doc -> doc
+  | Error err ->
+      failwithf "unexpected parse failure for %s: %s (%s)" path
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+
+let run_ok ?now ?tz doc query =
+  match Oq.Eval.run_text ?now ?tz ~doc query with
+  | Ok value -> value
+  | Error message ->
+      failwithf "expected success for %S, got error: %s" query message ()
+
+let run_error ?now ?tz doc query =
+  match Oq.Eval.run_text ?now ?tz ~doc query with
+  | Ok value -> failwithf "expected error for %S, got value: %s" query value ()
+  | Error message -> message
+
+let assert_contains text needle =
+  assert (String.is_substring text ~substring:needle)
+
+let () =
+  let todo = parse_fixture "fixtures/corpus/todo_workflows.org" in
+  let props = parse_fixture "fixtures/corpus/properties_drawers.org" in
+  let blocks = parse_fixture "fixtures/corpus/blocks_links_tables.org" in
+  assert (String.equal (run_ok todo ".todos | .length") "2");
+  assert (String.equal (run_ok todo ".done | .length") "1");
+  assert (String.equal (run_ok todo ".scheduled | .length") "2");
+  assert (String.equal (run_ok todo ".deadline | .length") "1");
+  assert (String.equal (run_ok todo ".closed | .length") "1");
+  assert (String.equal (run_ok todo ".tags | .length") "3");
+  assert (String.equal (run_ok props ".properties | .length") "4");
+  assert
+    (String.equal
+       (run_ok props ".property('OWNER') | map(.value)")
+       "Sergey\nTeam");
+  assert (String.equal (run_ok blocks ".code('ocaml') | .length") "1");
+  assert_contains (run_ok blocks ".code('ocaml') | .text") "let greeting = \"hello\"";
+  assert_contains (run_ok blocks ".links | map(.target)") "https://example.com/docs";
+  assert (String.equal (run_ok blocks ".tables | map(.row_count)") "4")
+
+let () =
+  let todo = parse_fixture "fixtures/corpus/todo_workflows.org" in
+  let now = "2026-02-17T10:30:00-08:00" in
+  let tz = "America/Los_Angeles" in
+  assert
+    (String.equal
+       (run_ok ~now ~tz todo ".scheduled('next_7d') | map(.title)")
+       "Prepare release\nConfirm changelog");
+  assert (String.equal (run_ok ~now ~tz todo ".scheduled('today') | .length") "0");
+  assert (String.equal (run_ok ~now ~tz todo ".scheduled('tomorrow') | .length") "0");
+  assert (String.equal (run_ok ~now ~tz todo ".scheduled('next_7d') | .length") "2");
+  assert (String.equal (run_ok ~now ~tz todo ".deadline('this_week') | .length") "1");
+  assert (String.equal (run_ok ~now ~tz todo ".closed('yesterday') | .length") "1");
+  let first = run_ok ~now ~tz todo ".scheduled('next_7d') | map(.title)" in
+  let second = run_ok ~now ~tz todo ".scheduled('next_7d') | map(.title)" in
+  assert (String.equal first second);
+  assert
+    (String.equal
+       (run_ok ~now:"2026-02-22T08:00:00-08:00" ~tz todo
+          ".scheduled('this_week') | .length")
+       "2")
+
+let () =
+  let inline_doc =
+    parse_inline "overdue.org"
+      {|
+#+TODO: TODO | DONE
+
+* DONE Finished item
+SCHEDULED: <2026-02-10 Tue>
+DEADLINE: <2026-02-10 Tue>
+
+* TODO Pending item
+SCHEDULED: <2026-02-10 Tue>
+DEADLINE: <2026-02-10 Tue>
+|}
+  in
+  let now = "2026-02-11T08:00:00-08:00" in
+  let tz = "America/Los_Angeles" in
+  assert
+    (String.equal
+       (run_ok ~now ~tz inline_doc ".scheduled('overdue') | map(.title)")
+       "Pending item");
+  assert
+    (String.equal
+       (run_ok ~now ~tz inline_doc ".deadline('overdue') | map(.title)")
+       "Pending item");
+  let error = run_error ~now ~tz inline_doc ".closed('overdue')" in
+  assert_contains error "supported: today|tomorrow|yesterday|this_week|next_7d"
+
+let () =
+  let todo = parse_fixture "fixtures/corpus/todo_workflows.org" in
+  assert_contains
+    (run_error ~now:"2026-02-17" todo ".headings | .length")
+    "invalid --now value";
+  assert_contains
+    (run_error ~now:"2026-02-17T10:30:00" todo ".headings | .length")
+    "invalid --now value";
+  assert_contains
+    (run_error ~now:"2026-02-17 10:30:00-08:00" todo ".headings | .length")
+    "invalid --now value";
+  assert_contains
+    (run_error ~tz:"Mars/Phobos" todo ".headings | .length")
+    "invalid --tz value";
+  assert_contains
+    (run_error ~now:"2026-02-17T10:30:00+00:00" ~tz:"America/Los_Angeles" todo
+       ".headings | .length")
+    "offset mismatch between --now"

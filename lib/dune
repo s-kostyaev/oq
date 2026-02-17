@@ -1,6 +1,6 @@
 (library
  (name oq)
  (public_name oq)
- (libraries base core stdio cmdliner re2)
+ (libraries base core stdio cmdliner re2 core_unix.time_float_unix)
  (preprocess
   (pps ppx_jane)))
