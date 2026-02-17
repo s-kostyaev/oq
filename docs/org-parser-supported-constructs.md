@@ -58,9 +58,10 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
 - Drawer names are limited to `[A-Za-z0-9_-]+`; tokens like `:+1:` are treated
   as text instead of drawer markers.
 - Known drawers (`PROPERTIES`/`LOGBOOK`, case-insensitive) are recognized
-  conservatively when a matching `:END:` appears later in the file.
+  conservatively when a matching `:END:` appears before the next heading.
 - Custom `:NAME:` drawers are also recognized conservatively with the same
-  `:END:` lookahead rule; this prevents false opens on isolated plain tokens
+  before-next-heading `:END:` rule; this prevents false opens on isolated
+  plain tokens
   while keeping drawer internals opaque to block/link parsing.
 - Drawer markers may be indented with leading whitespace (for example inside
   list context), matching Org behavior.

@@ -581,8 +581,8 @@ let () =
         (Oq.Diagnostic.parse_reason_to_string err.reason)
         err.detail ()
   | Ok doc ->
-      assert (List.length doc.index.headings = 1);
-      assert (List.length doc.index.drawers = 1)
+      assert (List.length doc.index.headings = 2);
+      assert (List.is_empty doc.index.drawers)
 
 let () =
   match

@@ -340,11 +340,11 @@ let () =
 * Note
 :MYDRAWER:
 * plain
-#+BEGIN_SRC
-:END:
+  #+BEGIN_SRC
+  :END:
 |}
   in
-  assert (String.equal (run_ok inline_doc ".headings | .length") "1");
+  assert (String.equal (run_ok inline_doc ".headings | .length") "2");
   assert (String.equal (run_ok inline_doc ".code | .length") "0")
 
 let () =
