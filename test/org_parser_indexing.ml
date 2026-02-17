@@ -386,6 +386,22 @@ let () =
            "https://example.com/docs")
 
 let () =
+  match
+    Oq.Org.parse_string ~path:"links-bracket.org"
+      "* Links\n[[https://example.com/docs][Example Docs]]\n"
+  with
+  | Error err ->
+      failwithf "expected bracket link parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc -> (
+      match doc.index.links with
+      | [ link ] ->
+          assert (Poly.equal link.kind Oq.Org.Bracket);
+          assert (String.equal link.target "https://example.com/docs")
+      | _ -> failwith "expected a single bracket link without plain duplicate")
+
+let () =
   let bytes = Bytes.create 1 in
   Bytes.set bytes 0 (Char.of_int_exn 0xFF);
   let invalid = Bytes.to_string bytes in

@@ -568,11 +568,18 @@ module Org = struct
   let extract_plain_links line =
     whitespace_tokens line
     |> List.filter_map ~f:(fun token ->
-           let normalized = trim_plain_link_token token in
-           if String.is_prefix normalized ~prefix:"http://"
-              || String.is_prefix normalized ~prefix:"https://"
-           then Some normalized
-           else None)
+           let looks_like_bracket_fragment =
+             String.is_substring token ~substring:"[["
+             || String.is_substring token ~substring:"]]"
+             || String.is_substring token ~substring:"]["
+           in
+           if looks_like_bracket_fragment then None
+           else
+             let normalized = trim_plain_link_token token in
+             if String.is_prefix normalized ~prefix:"http://"
+                || String.is_prefix normalized ~prefix:"https://"
+             then Some normalized
+             else None)
 
   let extract_bracket_links line =
     let rec loop position acc =
