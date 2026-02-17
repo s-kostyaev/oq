@@ -604,6 +604,17 @@ let () =
     "bbdb:R.* Stallman"
 
 let () =
+  let inline_doc =
+    parse_inline "links-duplicate-occurrences.org"
+      {|
+* Links
+https://example.com https://example.com
+<https://example.org> https://example.org
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".links | .length") "4")
+
+let () =
   let todo = parse_fixture "fixtures/corpus/todo_workflows.org" in
   let now = "2026-02-17T10:30:00-08:00" in
   let tz = "America/Los_Angeles" in

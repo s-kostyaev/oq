@@ -891,6 +891,18 @@ let () =
              String.equal link.target "bbdb:R.* Stallman"))
 
 let () =
+  match
+    Oq.Org.parse_string ~path:"links-duplicate-occurrences.org"
+      "* Links\nhttps://example.com https://example.com\n<https://example.org> https://example.org\n"
+  with
+  | Error err ->
+      failwithf "expected duplicate link occurrences parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.links = 4)
+
+let () =
   let bytes = Bytes.create 1 in
   Bytes.set bytes 0 (Char.of_int_exn 0xFF);
   let invalid = Bytes.to_string bytes in

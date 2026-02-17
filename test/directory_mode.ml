@@ -739,6 +739,20 @@ let () =
 let () =
   with_temp_dir (fun root ->
       ignore
+        (write_file root "links-duplicate-occurrences.org"
+           "* Links\nhttps://example.com https://example.com\n<https://example.org> https://example.org\n");
+      let outcome = run_directory ~query:(Some ".links | .length") root in
+      assert_exit outcome Oq.Exit_code.Success;
+      let stdout = require_stdout outcome in
+      assert (extract_counter stdout "candidate_org" = 1);
+      assert (extract_counter stdout "parsed_ok" = 1);
+      assert (extract_counter stdout "parse_failed" = 0);
+      assert_contains stdout "links-duplicate-occurrences.org:";
+      assert_contains stdout "  4")
+
+let () =
+  with_temp_dir (fun root ->
+      ignore
         (write_file root "planning-diary-sexp.org"
            "* TODO Recurring\nSCHEDULED: <%%(diary-float t 5 2)>\n");
       let outcome = run_directory ~query:(Some ".scheduled | .length") root in

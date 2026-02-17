@@ -936,16 +936,8 @@ module Org = struct
                   }
                   :: !links_rev);
           let plain_links =
-            let combined =
-              extract_angle_links ~custom_link_types line
-              @ extract_plain_links ~custom_link_types line
-            in
-            let seen = String.Hash_set.create () in
-            List.filter combined ~f:(fun target ->
-                if Hash_set.mem seen target then false
-                else (
-                  Hash_set.add seen target;
-                  true))
+            extract_angle_links ~custom_link_types line
+            @ extract_plain_links ~custom_link_types line
           in
           List.iter plain_links ~f:(fun target ->
               let source =
