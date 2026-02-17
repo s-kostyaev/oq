@@ -1,0 +1,21 @@
+# OCaml / dune build artifacts
+_build/
+.merlin
+*.install
+*.cm[aioxt]
+*.cmxa
+*.cmxs
+*.annot
+*.a
+*.o
+*.obj
+
+# opam / local switches
+_opam/
+*.opam.locked
+
+# Editor and OS clutter
+*.swp
+*.swo
+*~
+.DS_Store
