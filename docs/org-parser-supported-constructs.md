@@ -118,6 +118,8 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
 - Plain link tokenization is whitespace-aware (spaces and tabs).
 - Angle links `<...>` are parsed before tokenization, so targets with spaces are preserved
   (for example `<https://example.com/path with spaces>` and `<bbdb:R.* Stallman>`).
+- Angle-link scanning is resilient to unrelated `<` text earlier on the same line
+  (for example `if x < y then <https://example.com>` still indexes the URL).
 - Repeated link occurrences are preserved (same target repeated on a line is indexed multiple times).
 - Bracket links are not duplicated as plain links.
 - Plain links preserve balanced trailing parentheses in URLs.

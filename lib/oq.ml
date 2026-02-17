@@ -793,17 +793,19 @@ module Org = struct
                 String.sub line ~pos:search_from ~len:(end_index - search_from)
                 |> String.strip
               in
-              let acc =
-                if String.is_empty candidate then acc
+              let is_angle_link_candidate =
+                if String.is_empty candidate then false
                 else if
                   is_uri_with_scheme candidate
                   || is_known_plain_scheme candidate
                   || is_plain_file_path candidate
                   || is_custom_plain_scheme ~custom_link_types candidate
-                then candidate :: acc
-                else acc
+                then true
+                else false
               in
-              loop (end_index + 1) acc)
+              if is_angle_link_candidate then
+                loop (end_index + 1) (candidate :: acc)
+              else loop (start_index + 1) acc)
     in
     loop 0 []
 

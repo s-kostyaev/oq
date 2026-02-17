@@ -1114,6 +1114,22 @@ let () =
 
 let () =
   match
+    Oq.Org.parse_string ~path:"links-angle-after-less-than.org"
+      "* Links\nif x < y then <https://example.com/docs>\n"
+  with
+  | Error err ->
+      failwithf "expected angle link after non-link '<' parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.links = 1);
+      assert
+        (String.equal
+           (List.hd_exn doc.index.links).target
+           "https://example.com/docs")
+
+let () =
+  match
     Oq.Org.parse_string ~path:"links-duplicate-occurrences.org"
       "* Links\nhttps://example.com https://example.com\n<https://example.org> https://example.org\n"
   with

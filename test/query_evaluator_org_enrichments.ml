@@ -820,6 +820,19 @@ let () =
 
 let () =
   let inline_doc =
+    parse_inline "links-angle-after-less-than.org"
+      {|
+* Links
+if x < y then <https://example.com/docs>
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".links | .length") "1");
+  assert_contains
+    (run_ok inline_doc ".links | map(.target)")
+    "https://example.com/docs"
+
+let () =
+  let inline_doc =
     parse_inline "links-duplicate-occurrences.org"
       {|
 * Links
