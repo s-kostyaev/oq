@@ -311,12 +311,14 @@ let () =
       {|
 * Note
 :MYDRAWER:
-content
+#+BEGIN_SRC
+literal
 :END:
 |}
   in
   assert (String.equal (run_ok inline_doc ".headings | .length") "1");
-  assert (String.equal (run_ok inline_doc ".properties | .length") "0")
+  assert (String.equal (run_ok inline_doc ".properties | .length") "0");
+  assert (String.equal (run_ok inline_doc ".code | .length") "0")
 
 let () =
   let inline_doc =
@@ -673,6 +675,19 @@ let () =
 #+BEGIN_SRC text
 #+LINK: gh https://github.com/%s
 #+END_SRC
+gh:ocaml/dune
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".links | .length") "0")
+
+let () =
+  let inline_doc =
+    parse_inline "links-custom-abbrev-in-drawer.org"
+      {|
+* Note
+:MYDRAWER:
+#+LINK: gh https://github.com/%s
+:END:
 gh:ocaml/dune
 |}
   in

@@ -523,7 +523,7 @@ let () =
 let () =
   match
     Oq.Org.parse_string ~path:"custom-drawer-opaque.org"
-      "* Note\n:MYDRAWER:\ncontent\n:END:\n"
+      "* Note\n:MYDRAWER:\n#+BEGIN_SRC\nliteral\n:END:\n"
   with
   | Error err ->
       failwithf "expected custom drawer-opaque parse success, got %s (%s)"
@@ -531,7 +531,11 @@ let () =
         err.detail ()
   | Ok doc ->
       assert (List.length doc.index.headings = 1);
-      assert (List.is_empty doc.index.drawers)
+      assert (List.length doc.index.drawers = 1);
+      assert
+        (String.equal
+           (List.hd_exn doc.index.drawers).name
+           "MYDRAWER")
 
 let () =
   match
@@ -950,6 +954,17 @@ let () =
   with
   | Error err ->
       failwithf "expected LINK abbrev in src to stay inactive, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc -> assert (List.length doc.index.links = 0)
+
+let () =
+  match
+    Oq.Org.parse_string ~path:"links-custom-abbrev-in-drawer.org"
+      "* Note\n:MYDRAWER:\n#+LINK: gh https://github.com/%s\n:END:\ngh:ocaml/dune\n"
+  with
+  | Error err ->
+      failwithf "expected LINK abbrev in custom drawer to stay inactive, got %s (%s)"
         (Oq.Diagnostic.parse_reason_to_string err.reason)
         err.detail ()
   | Ok doc -> assert (List.length doc.index.links = 0)

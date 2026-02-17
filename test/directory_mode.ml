@@ -529,7 +529,7 @@ let () =
   with_temp_dir (fun root ->
       ignore
         (write_file root "custom-drawer-opaque.org"
-           "* Note\n:MYDRAWER:\ncontent\n:END:\n");
+           "* Note\n:MYDRAWER:\n#+BEGIN_SRC\nliteral\n:END:\n");
       let outcome = run_directory ~query:(Some ".headings | .length") root in
       assert_exit outcome Oq.Exit_code.Success;
       let stdout = require_stdout outcome in
@@ -865,6 +865,20 @@ let () =
       assert (extract_counter stdout "parsed_ok" = 1);
       assert (extract_counter stdout "parse_failed" = 0);
       assert_contains stdout "links-custom-abbrev-in-src.org:";
+      assert_contains stdout "  0")
+
+let () =
+  with_temp_dir (fun root ->
+      ignore
+        (write_file root "links-custom-abbrev-in-drawer.org"
+           "* Note\n:MYDRAWER:\n#+LINK: gh https://github.com/%s\n:END:\ngh:ocaml/dune\n");
+      let outcome = run_directory ~query:(Some ".links | .length") root in
+      assert_exit outcome Oq.Exit_code.Success;
+      let stdout = require_stdout outcome in
+      assert (extract_counter stdout "candidate_org" = 1);
+      assert (extract_counter stdout "parsed_ok" = 1);
+      assert (extract_counter stdout "parse_failed" = 0);
+      assert_contains stdout "links-custom-abbrev-in-drawer.org:";
       assert_contains stdout "  0")
 
 let () =

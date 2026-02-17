@@ -448,7 +448,7 @@ module Org = struct
     String.is_prefix trimmed ~prefix:"#"
     && not (String.is_prefix trimmed ~prefix:"#+")
 
-  let parse_drawer_open line =
+  let parse_drawer_name line =
     let trimmed = String.rstrip line in
     let len = String.length trimmed in
     let is_valid_drawer_char = function
@@ -457,10 +457,6 @@ module Org = struct
     in
     let is_valid_drawer_name name =
       not (String.is_empty name) && String.for_all name ~f:is_valid_drawer_char
-    in
-    let is_known_drawer_name name =
-      String.Caseless.equal name "PROPERTIES"
-      || String.Caseless.equal name "LOGBOOK"
     in
     if len < 3 then None
     else if not (Char.equal trimmed.[0] ':' && Char.equal trimmed.[len - 1] ':')
@@ -472,11 +468,33 @@ module Org = struct
       else if not (String.equal raw_name name) then None
       else if String.exists name ~f:Char.is_whitespace then None
       else if not (is_valid_drawer_name name) then None
-      else if not (is_known_drawer_name name) then None
       else if String.Caseless.equal name "END" then None
       else Some name
 
+  let is_known_drawer_name name =
+    String.Caseless.equal name "PROPERTIES"
+    || String.Caseless.equal name "LOGBOOK"
+
+  let parse_drawer_open line =
+    match parse_drawer_name line with
+    | Some name when is_known_drawer_name name -> Some name
+    | _ -> None
+
   let is_drawer_end line = String.Caseless.equal (String.strip line) ":END:"
+
+  let has_drawer_end_before_heading ~lines ~start_index =
+    let line_count = Array.length lines in
+    let rec loop index =
+      if index >= line_count then false
+      else
+        let line = lines.(index) in
+        if is_drawer_end line then true
+        else
+          match parse_heading_line line with
+          | Some _ -> false
+          | None -> loop (index + 1)
+    in
+    loop start_index
 
   let parse_property_line line =
     let trimmed = String.rstrip line in
@@ -971,7 +989,19 @@ module Org = struct
                                     start_line = line_index + 1;
                                     heading_id = None;
                                   }
-                          | None -> ()))
+                          | None -> (
+                              match parse_drawer_name line with
+                              | Some name
+                                when has_drawer_end_before_heading ~lines
+                                       ~start_index:(line_index + 1) ->
+                                  open_drawer_state :=
+                                    Some
+                                      {
+                                        name;
+                                        start_line = line_index + 1;
+                                        heading_id = None;
+                                      }
+                              | _ -> ())))
     done;
     custom_link_types
 
@@ -1250,11 +1280,23 @@ module Org = struct
                                         start_line = line_no;
                                         heading_id = !current_heading_id;
                                       }
-                              | None ->
+                              | None -> (
+                                  match parse_drawer_name line with
+                                  | Some name
+                                    when has_drawer_end_before_heading ~lines
+                                           ~start_index:(line_index + 1) ->
+                                      open_drawer_state :=
+                                        Some
+                                          {
+                                            name;
+                                            start_line = line_no;
+                                            heading_id = !current_heading_id;
+                                          }
+                                  | _ ->
                                   (match parse_heading_line line with
                                   | Some (level, raw_heading_body) ->
                                       add_heading ~line_no ~level ~raw_heading_body
-                                  | None -> add_planning_entries ~line ~line_no);
+                                  | None -> add_planning_entries ~line ~line_no));
                               add_links ~line ~line_no
                                 ~heading_id:!current_heading_id))))
         done;

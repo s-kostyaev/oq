@@ -55,9 +55,10 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
   avoiding false unterminated-drawer errors on plain content.
 - Drawer names are limited to `[A-Za-z0-9_-]+`; tokens like `:+1:` are treated
   as text instead of drawer markers.
-- Recognized drawer openings are limited to known drawers (`PROPERTIES` and
-  `LOGBOOK`, case-insensitive). Other `:NAME:` tokens (for example `:TODO:`,
-  `:MYDRAWER:`, `:smile:`) are treated as plain text.
+- Known drawers (`PROPERTIES`/`LOGBOOK`, case-insensitive) are recognized directly.
+- Custom `:NAME:` drawers are recognized conservatively when a matching `:END:`
+  appears before the next heading; this prevents false opens on plain tokens
+  while keeping drawer internals opaque to block/link parsing.
 - Drawer markers must start at column 1; indented `:NAME:` lines are treated as
   regular text (prevents false drawer opens on indented content).
 - Drawer closing marker `:END:` is matched case-insensitively and may be
@@ -110,7 +111,8 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
   (for example `#+LINK: gh https://github.com/%s` enables `gh:owner/repo`).
 - `#+LINK` abbreviations are collected file-wide, so usage order is flexible
   (`gh:owner/repo` can appear before its `#+LINK: gh ...` declaration).
-- `#+LINK` inside block bodies is ignored (only real keyword lines define abbreviations).
+- `#+LINK` inside opaque regions (block bodies and drawer bodies) is ignored
+  (only real keyword lines define abbreviations).
 - Plain link tokenization is whitespace-aware (spaces and tabs).
 - Angle links `<...>` are parsed before tokenization, so targets with spaces are preserved
   (for example `<https://example.com/path with spaces>` and `<bbdb:R.* Stallman>`).
