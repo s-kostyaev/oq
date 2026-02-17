@@ -696,6 +696,16 @@ let () =
              String.equal link.target "woman:printf"))
 
 let () =
+  match Oq.Org.parse_string ~path:"links-calc.org" "* Note\ncalc:2+2\n" with
+  | Error err ->
+      failwithf "expected calc plain link parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.links = 1);
+      assert (String.equal (List.hd_exn doc.index.links).target "calc:2+2")
+
+let () =
   match
     Oq.Org.parse_string ~path:"links-doi.org"
       "* Note\ndoi:10.1000/182\n"

@@ -687,6 +687,7 @@ module Org = struct
     || has_prefix "info:"
     || has_prefix "man:"
     || has_prefix "woman:"
+    || has_prefix "calc:"
     || has_prefix "doi:"
     || has_prefix "attachment:"
     || has_prefix "coderef:"

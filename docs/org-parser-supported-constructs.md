@@ -98,7 +98,8 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
   `~alice/docs/spec.org`, `C:/work/notes.org`, `D:\docs\spec.org`,
   `/ssh:me@host:/tmp/notes.org`).
 - Plain `id:...` and `custom-id:...` links are also recognized.
-- Plain `news:...`, `shell:...`, `elisp:...`, `help:...`, `info:...`, `man:...`, and `woman:...` links are also recognized.
+- Plain `news:...`, `shell:...`, `elisp:...`, `help:...`, `info:...`, `man:...`,
+  `woman:...`, and `calc:...` links are also recognized.
 - Plain `doi:...` links are also recognized.
 - Plain `attachment:...` links are also recognized.
 - Plain `coderef:...` links are also recognized.

@@ -463,6 +463,17 @@ woman:printf
 
 let () =
   let inline_doc =
+    parse_inline "links-calc.org"
+      {|
+* Note
+calc:2+2
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".links | .length") "1");
+  assert_contains (run_ok inline_doc ".links | map(.target)") "calc:2+2"
+
+let () =
+  let inline_doc =
     parse_inline "links-doi.org"
       {|
 * Note
