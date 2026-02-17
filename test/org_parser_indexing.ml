@@ -849,6 +849,24 @@ let () =
              String.equal link.target "https://example.com/help"))
 
 let () =
+  match
+    Oq.Org.parse_string ~path:"links-angle-spaces.org"
+      "* Links\n<https://example.com/path with spaces>\n<bbdb:R.* Stallman>\n"
+  with
+  | Error err ->
+      failwithf "expected angle links with spaces parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.links = 2);
+      assert
+        (List.exists doc.index.links ~f:(fun link ->
+             String.equal link.target "https://example.com/path with spaces"));
+      assert
+        (List.exists doc.index.links ~f:(fun link ->
+             String.equal link.target "bbdb:R.* Stallman"))
+
+let () =
   let bytes = Bytes.create 1 in
   Bytes.set bytes 0 (Char.of_int_exn 0xFF);
   let invalid = Bytes.to_string bytes in

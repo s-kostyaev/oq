@@ -623,78 +623,106 @@ module Org = struct
     in
     drop_trailing initial
 
-  let extract_plain_links line =
-    let is_uri_with_scheme token =
-      match String.substr_index token ~pattern:"://" with
-      | None -> false
-      | Some scheme_end ->
-          let is_scheme_char = function
-            | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '+' | '-' | '.' -> true
-            | _ -> false
-          in
-          let starts_with_alpha =
-            scheme_end > 0
-            &&
-            match token.[0] with
-            | 'a' .. 'z' | 'A' .. 'Z' -> true
-            | _ -> false
-          in
-          starts_with_alpha
+  let is_uri_with_scheme token =
+    match String.substr_index token ~pattern:"://" with
+    | None -> false
+    | Some scheme_end ->
+        let is_scheme_char = function
+          | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '+' | '-' | '.' -> true
+          | _ -> false
+        in
+        let starts_with_alpha =
+          scheme_end > 0
           &&
-          let rec loop index =
-            if index >= scheme_end then true
-            else if is_scheme_char token.[index] then loop (index + 1)
-            else false
-          in
-          loop 1
+          match token.[0] with
+          | 'a' .. 'z' | 'A' .. 'Z' -> true
+          | _ -> false
+        in
+        starts_with_alpha
+        &&
+        let rec loop index =
+          if index >= scheme_end then true
+          else if is_scheme_char token.[index] then loop (index + 1)
+          else false
+        in
+        loop 1
+
+  let is_known_plain_scheme token =
+    let lower = String.lowercase token in
+    let has_prefix prefix =
+      String.is_prefix lower ~prefix
+      && String.length lower > String.length prefix
     in
-    let is_known_plain_scheme token =
-      let lower = String.lowercase token in
-      let has_prefix prefix =
-        String.is_prefix lower ~prefix
-        && String.length lower > String.length prefix
-      in
-      has_prefix "file:"
-      || has_prefix "file+sys:"
-      || has_prefix "file+emacs:"
-      || has_prefix "mailto:"
-      || has_prefix "id:"
-      || has_prefix "custom-id:"
-      || has_prefix "news:"
-      || has_prefix "shell:"
-      || has_prefix "elisp:"
-      || has_prefix "help:"
-      || has_prefix "info:"
-      || has_prefix "man:"
-      || has_prefix "woman:"
-      || has_prefix "doi:"
-      || has_prefix "attachment:"
-      || has_prefix "coderef:"
-      || has_prefix "irc:"
-      || has_prefix "gnus:"
-      || has_prefix "rmail:"
-      || has_prefix "docview:"
-      || has_prefix "bbdb:"
-      || has_prefix "mhe:"
-      || has_prefix "wl:"
-      || has_prefix "vm:"
-      || has_prefix "vm-imap:"
+    has_prefix "file:"
+    || has_prefix "file+sys:"
+    || has_prefix "file+emacs:"
+    || has_prefix "mailto:"
+    || has_prefix "id:"
+    || has_prefix "custom-id:"
+    || has_prefix "news:"
+    || has_prefix "shell:"
+    || has_prefix "elisp:"
+    || has_prefix "help:"
+    || has_prefix "info:"
+    || has_prefix "man:"
+    || has_prefix "woman:"
+    || has_prefix "doi:"
+    || has_prefix "attachment:"
+    || has_prefix "coderef:"
+    || has_prefix "irc:"
+    || has_prefix "gnus:"
+    || has_prefix "rmail:"
+    || has_prefix "docview:"
+    || has_prefix "bbdb:"
+    || has_prefix "mhe:"
+    || has_prefix "wl:"
+    || has_prefix "vm:"
+    || has_prefix "vm-imap:"
+
+  let is_plain_file_path token =
+    let has_prefix prefix =
+      String.is_prefix token ~prefix
+      && String.length token > String.length prefix
     in
-    let is_plain_file_path token =
-      let has_prefix prefix =
-        String.is_prefix token ~prefix
-        && String.length token > String.length prefix
-      in
-      has_prefix "/" || has_prefix "./" || has_prefix "../"
+    has_prefix "/" || has_prefix "./" || has_prefix "../"
+
+  let extract_angle_links line =
+    let rec loop position acc =
+      match String.substr_index ~pos:position line ~pattern:"<" with
+      | None -> List.rev acc
+      | Some start_index ->
+          let search_from = start_index + 1 in
+          (match String.substr_index ~pos:search_from line ~pattern:">" with
+          | None -> List.rev acc
+          | Some end_index ->
+              let candidate =
+                String.sub line ~pos:search_from ~len:(end_index - search_from)
+                |> String.strip
+              in
+              let acc =
+                if String.is_empty candidate then acc
+                else if
+                  is_uri_with_scheme candidate
+                  || is_known_plain_scheme candidate
+                  || is_plain_file_path candidate
+                then candidate :: acc
+                else acc
+              in
+              loop (end_index + 1) acc)
     in
+    loop 0 []
+
+  let extract_plain_links line =
     whitespace_tokens line
     |> List.filter_map ~f:(fun token ->
-           let looks_like_bracket_fragment =
+           let looks_like_delimited_fragment =
              String.is_substring token ~substring:"[["
              || String.is_substring token ~substring:"]]"
              || String.is_substring token ~substring:"]["
+             || String.is_substring token ~substring:"<"
+             || String.is_substring token ~substring:">"
            in
-           if looks_like_bracket_fragment then None
+           if looks_like_delimited_fragment then None
            else
              let normalized = trim_plain_link_token token in
              if
@@ -887,7 +915,15 @@ module Org = struct
                     source;
                   }
                   :: !links_rev);
-          let plain_links = extract_plain_links line in
+          let plain_links =
+            let combined = extract_angle_links line @ extract_plain_links line in
+            let seen = String.Hash_set.create () in
+            List.filter combined ~f:(fun target ->
+                if Hash_set.mem seen target then false
+                else (
+                  Hash_set.add seen target;
+                  true))
+          in
           List.iter plain_links ~f:(fun target ->
               let source =
                 make_source_ref ~path ~start_line:line_no ~end_line:line_no

@@ -563,6 +563,23 @@ Visit https://example.com/docs! and then https://example.com/help?
     "https://example.com/help"
 
 let () =
+  let inline_doc =
+    parse_inline "links-angle-spaces.org"
+      {|
+* Links
+<https://example.com/path with spaces>
+<bbdb:R.* Stallman>
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".links | .length") "2");
+  assert_contains
+    (run_ok inline_doc ".links | map(.target)")
+    "https://example.com/path with spaces";
+  assert_contains
+    (run_ok inline_doc ".links | map(.target)")
+    "bbdb:R.* Stallman"
+
+let () =
   let todo = parse_fixture "fixtures/corpus/todo_workflows.org" in
   let now = "2026-02-17T10:30:00-08:00" in
   let tz = "America/Los_Angeles" in
