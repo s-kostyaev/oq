@@ -560,10 +560,46 @@ module Org = struct
     String.split inner ~on:'|' |> List.map ~f:String.strip
 
   let trim_plain_link_token token =
-    String.strip token ~drop:(function
-      | '(' | ')' | '[' | ']' | '<' | '>' | ',' | '.' | ';' | ':' | '"' | '\''
-        -> true
-      | _ -> false)
+    let is_leading_trim_char = function
+      | '(' | '[' | '<' | ',' | '.' | ';' | ':' | '"' | '\'' -> true
+      | _ -> false
+    in
+    let is_trailing_trim_char = function
+      | '>' | ',' | '.' | ';' | ':' | '"' | '\'' | ')' | ']' -> true
+      | _ -> false
+    in
+    let rec drop_leading index =
+      if index >= String.length token then index
+      else if is_leading_trim_char token.[index] then drop_leading (index + 1)
+      else index
+    in
+    let start_index = drop_leading 0 in
+    let initial =
+      if start_index >= String.length token then ""
+      else String.drop_prefix token start_index
+    in
+    let has_unmatched_closer text closer opener =
+      String.count text ~f:(Char.equal closer)
+      > String.count text ~f:(Char.equal opener)
+    in
+    let should_drop_trailing text char =
+      if not (is_trailing_trim_char char) then false
+      else
+        match char with
+        | ')' -> has_unmatched_closer text ')' '('
+        | ']' -> has_unmatched_closer text ']' '['
+        | _ -> true
+    in
+    let rec drop_trailing text =
+      let len = String.length text in
+      if len = 0 then text
+      else
+        let last = text.[len - 1] in
+        if should_drop_trailing text last then
+          drop_trailing (String.drop_suffix text 1)
+        else text
+    in
+    drop_trailing initial
 
   let extract_plain_links line =
     whitespace_tokens line
