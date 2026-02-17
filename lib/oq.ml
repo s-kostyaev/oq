@@ -2638,7 +2638,7 @@ module Eval = struct
               | None -> true
               | Some expected -> (
                   match block.language with
-                  | Some actual -> String.equal actual expected
+                  | Some actual -> String.Caseless.equal actual expected
                   | None -> false))
         in
         Value.List (List.map selected ~f:(fun block -> Value.Block block))

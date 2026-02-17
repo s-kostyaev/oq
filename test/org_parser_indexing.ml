@@ -288,6 +288,22 @@ let () =
 
 let () =
   match
+    Oq.Org.parse_string ~path:"src-upper-lang.org"
+      "* Demo\n#+BEGIN_SRC OCAML\nlet x = 1\n#+END_SRC\n"
+  with
+  | Error err ->
+      failwithf "expected uppercase-language src parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc -> (
+      match doc.index.blocks with
+      | [ block ] ->
+          assert (Poly.equal block.kind Oq.Org.Src);
+          assert (String.equal (Option.value block.language ~default:"") "OCAML")
+      | _ -> failwith "expected one src block with uppercase language")
+
+let () =
+  match
     Oq.Org.parse_string ~path:"planning-combined.org"
       "* TODO Combined planning\nSCHEDULED: <2026-02-18 Wed> DEADLINE: <2026-02-20 Fri> CLOSED: [2026-02-21 Sat]\n"
   with
