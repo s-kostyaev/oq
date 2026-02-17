@@ -23,6 +23,11 @@ oq --now 2026-02-17T08:00:00-08:00 --tz America/Los_Angeles notes.org ".schedule
 ### 2.1 Section Discovery and Extraction
 
 ```bash
+oq notes.org ".tree"
+oq notes.org ".tree | .length"
+oq notes.org ".tree | filter(.level <= 2) | map(.title)"
+oq notes.org ".tree | filter(startswith(.title, 'In')) | map(.start_line)"
+oq notes.org ".tree[0:10] | map(.title)"
 oq notes.org ".headings | map(.title)"
 oq notes.org ".headings | filter(startswith(.title, 'In')) | map(.title)"
 oq notes.org ".section('Inbox', 42:68) | .text"
@@ -69,12 +74,13 @@ oq --strict notes/ ".headings[0].title"
 
 ## 3. Canonical Agent Loop
 
-Use a stable 4-step loop:
+Use a stable 5-step loop:
 
 1. Discover: `.headings`, `.todos`, `.search(...)`.
-2. Narrow: `filter(...)`, indexing/slicing, `.section(..., start:end)`.
-3. Extract: `.text` only after scope is small.
-4. Validate: rerun the same command and compare output bytes.
+2. Add structure constraints with `.tree` + `filter(...)` / slicing.
+3. Narrow: `filter(...)`, indexing/slicing, `.section(..., start:end)`.
+4. Extract: `.text` only after scope is small.
+5. Validate: rerun the same command and compare output bytes.
 
 ## 4. Troubleshooting Flow
 

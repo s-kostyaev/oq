@@ -39,6 +39,10 @@ oq [--now RFC3339] [--tz IANA_TZ] [--strict] FILE_OR_DIR [QUERY]
 Examples:
 
 ```bash
+oq notes.org ".tree"
+oq notes.org ".tree | .length"
+oq notes.org ".tree | filter(.level <= 2) | map(.title)"
+oq notes.org ".tree[0:5] | map(.start_line)"
 oq notes.org ".headings | map(.title)"
 oq notes.org ".section('Inbox', 6:8) | .text"
 oq notes.org ".todos | filter(.state == 'NEXT') | map(.title)"

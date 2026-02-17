@@ -85,7 +85,10 @@ let man =
     `P "Regex search uses /pattern/flags with flags from: i, m, s.";
     `P "Examples:";
     `Pre
-      "  oq notes.org \".headings | filter(.state == 'TODO') | map(.title)\"\n\
+      "  oq notes.org \".tree\"\n\
+      \  oq notes.org \".tree | .length\"\n\
+      \  oq notes.org \".tree | filter(.level <= 2) | map(.title)\"\n\
+      \  oq notes.org \".headings | filter(.state == 'TODO') | map(.title)\"\n\
       \  oq notes.org \".section('Inbox', 6:8) | .text\"\n\
       \  oq notes.org \".search('/release/i') | map(.title)\"";
   ]

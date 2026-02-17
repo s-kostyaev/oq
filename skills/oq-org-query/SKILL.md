@@ -39,8 +39,19 @@ Do not change query text between retries unless correcting a specific error.
 ```bash
 oq notes.org ".headings | map(.title)"
 oq notes.org ".tree"
+oq notes.org ".tree | .length"
+oq notes.org ".tree | filter(.level <= 2) | map(.title)"
+oq notes.org ".tree[0:10] | map(.title)"
 oq notes.org ".todos | map(.title)"
 oq notes.org ".search('incident')"
+```
+
+### Tree-first narrowing
+
+```bash
+oq notes.org ".tree | filter(startswith(.title, 'In')) | map(.start_line)"
+oq notes.org ".tree | filter(.level == 1) | map(.title)"
+oq notes/ ".tree | filter(.path == 'roadmap.org') | map(.title)"
 ```
 
 ### Targeted section extraction
