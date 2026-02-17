@@ -490,15 +490,12 @@ module Org = struct
 
   let is_drawer_end line = String.Caseless.equal (String.strip line) ":END:"
 
-  let has_drawer_end_before_heading ~lines ~start_index =
+  let has_drawer_end ~lines ~start_index =
     let line_count = Array.length lines in
     let rec loop index =
       if index >= line_count then false
-      else
-        let line = lines.(index) in
-        if is_drawer_end line then true
-        else if Option.is_some (parse_heading_line line) then false
-        else loop (index + 1)
+      else if is_drawer_end lines.(index) then true
+      else loop (index + 1)
     in
     loop start_index
 
@@ -1062,7 +1059,7 @@ module Org = struct
                       | None -> (
                           match parse_drawer_open line with
                           | Some name
-                            when has_drawer_end_before_heading ~lines
+                            when has_drawer_end ~lines
                                    ~start_index:(line_index + 1) ->
                               open_drawer_state :=
                                 Some
@@ -1075,7 +1072,7 @@ module Org = struct
                           | None -> (
                               match parse_drawer_name line with
                               | Some name
-                                when has_drawer_end_before_heading ~lines
+                                when has_drawer_end ~lines
                                        ~start_index:(line_index + 1) ->
                                   open_drawer_state :=
                                     Some
@@ -1402,7 +1399,7 @@ module Org = struct
                               else
                               (match parse_drawer_open line with
                               | Some name
-                                when has_drawer_end_before_heading ~lines
+                                when has_drawer_end ~lines
                                        ~start_index:(line_index + 1) ->
                                   open_drawer_state :=
                                     Some
@@ -1415,7 +1412,7 @@ module Org = struct
                               | None -> (
                                   match parse_drawer_name line with
                                   | Some name
-                                    when has_drawer_end_before_heading ~lines
+                                    when has_drawer_end ~lines
                                            ~start_index:(line_index + 1) ->
                                       open_drawer_state :=
                                         Some

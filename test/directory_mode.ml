@@ -706,7 +706,7 @@ let () =
       assert (extract_counter stdout "parsed_ok" = 1);
       assert (extract_counter stdout "parse_failed" = 0);
       assert_contains stdout "custom-drawer-heading-like.org:";
-      assert_contains stdout "  2")
+      assert_contains stdout "  1")
 
 let () =
   with_temp_dir (fun root ->
