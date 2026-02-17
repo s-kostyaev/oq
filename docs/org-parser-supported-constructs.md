@@ -43,6 +43,8 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
   - `EXPORT` (optional backend).
 - Block headers accept space or tab as separator before optional parameters
   (for example `#+BEGIN_SRC\tocaml`).
+- `SRC`/`EXPORT` header arguments after language/backend are tolerated
+  (for example `#+BEGIN_SRC emacs-lisp :results output`).
 - Other valid block types (for example `CENTER`, `VERSE`, `COMMENT`) are parsed as opaque regions:
   - they do not fail parsing,
   - they are not added to `index.blocks`.

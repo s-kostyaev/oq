@@ -166,6 +166,25 @@ let () =
       | _ -> failwith "expected one heading and one src block")
 
 let () =
+  match
+    Oq.Org.parse_string ~path:"src-header-args.org"
+      "* Snippets\n#+BEGIN_SRC emacs-lisp :results output :exports both\n(message \"ok\")\n#+END_SRC\n"
+  with
+  | Error err ->
+      failwithf "expected src header args parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc -> (
+      match doc.index.blocks with
+      | [ block ] ->
+          assert (Poly.equal block.kind Oq.Org.Src);
+          assert
+            (String.equal
+               (Option.value block.language ~default:"")
+               "emacs-lisp")
+      | _ -> failwith "expected one src block with header args")
+
+let () =
   let bytes = Bytes.create 1 in
   Bytes.set bytes 0 (Char.of_int_exn 0xFF);
   let invalid = Bytes.to_string bytes in

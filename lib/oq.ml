@@ -379,6 +379,7 @@ module Org = struct
           else
             let key = String.uppercase (String.drop_prefix left 2 |> String.strip) in
             if String.is_empty key then None
+            else if String.exists key ~f:Char.is_whitespace then None
             else Some (key, String.strip right)
 
   let parse_drawer_open line =
