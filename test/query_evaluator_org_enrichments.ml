@@ -70,6 +70,17 @@ let () =
     (String.equal
        (run_ok props ".property('OWNER') | map(.value)")
        "Sergey\nTeam");
+  let props_lower =
+    parse_inline "properties-lowercase.org"
+      {|
+* Task
+:PROPERTIES:
+:owner: Alice
+:END:
+|}
+  in
+  assert (String.equal (run_ok props_lower ".property('OWNER') | .length") "1");
+  assert (String.equal (run_ok props_lower ".property('owner') | .length") "1");
   assert (String.equal (run_ok blocks ".code('ocaml') | .length") "1");
   assert_contains (run_ok blocks ".code('ocaml') | .text") "let greeting = \"hello\"";
   assert_contains (run_ok blocks ".links | map(.target)") "https://example.com/docs";

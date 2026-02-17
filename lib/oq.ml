@@ -2613,7 +2613,7 @@ module Eval = struct
         in
         let selected =
           List.filter doc.index.properties ~f:(fun property ->
-              String.equal property.key key)
+              String.Caseless.equal property.key key)
         in
         Value.List (List.map selected ~f:(fun property -> Value.Property property))
     | "scheduled" | "deadline" | "closed" ->

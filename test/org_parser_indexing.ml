@@ -150,6 +150,22 @@ let () =
   assert (List.mem keys "CUSTOM_ID" ~equal:String.equal)
 
 let () =
+  match
+    Oq.Org.parse_string ~path:"properties-lowercase.org"
+      "* Task\n:PROPERTIES:\n:owner: Alice\n:END:\n"
+  with
+  | Error err ->
+      failwithf "expected lowercase property parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.properties = 1);
+      assert
+        (String.Caseless.equal
+           (List.hd_exn doc.index.properties).key
+           "OWNER")
+
+let () =
   let blocks = parse_fixture "fixtures/corpus/blocks_links_tables.org" in
   assert (List.length blocks.index.blocks = 2);
   assert (List.length blocks.index.tables = 1);
