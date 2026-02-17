@@ -69,6 +69,21 @@ let () =
       assert (List.length doc.index.todos = 2)
 
 let () =
+  match
+    Oq.Org.parse_string ~path:"todo-multiple-lines.org"
+      "#+TODO: TODO(t) NEXT(n) | DONE(d)\n#+TODO: WAIT(w) HOLD(h) | CANCELED(c)\n* TODO A\n* WAIT B\n* CANCELED C\n"
+  with
+  | Error err ->
+      failwithf "expected multiple TODO lines parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert
+        (Poly.equal doc.todo_config.open_states [ "TODO"; "NEXT"; "WAIT"; "HOLD" ]);
+      assert (Poly.equal doc.todo_config.done_states [ "DONE"; "CANCELED" ]);
+      assert (List.length doc.index.todos = 3)
+
+let () =
   let props = parse_fixture "fixtures/corpus/properties_drawers.org" in
   assert (List.length props.index.properties = 4);
   assert (List.length props.index.drawers = 2);

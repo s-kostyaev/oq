@@ -112,6 +112,16 @@ module Org = struct
       List.mem config.open_states state ~equal:String.equal
       || List.mem config.done_states state ~equal:String.equal
 
+    let append_unique base extras =
+      List.fold extras ~init:base ~f:(fun acc item ->
+          if List.mem acc item ~equal:String.equal then acc else acc @ [ item ])
+
+    let merge left right =
+      {
+        open_states = append_unique left.open_states right.open_states;
+        done_states = append_unique left.done_states right.done_states;
+      }
+
     let normalize_state_token raw_token =
       let token = String.strip raw_token in
       if String.is_empty token then None
@@ -643,6 +653,7 @@ module Org = struct
         let lines = String.split_lines content |> Array.of_list in
         let line_count = Array.length lines in
         let todo_config = ref Todo_config.default in
+        let has_explicit_todo_config = ref false in
         let keywords_rev = ref [] in
         let heading_stack = ref [] in
         let current_heading_id = ref None in
@@ -846,7 +857,12 @@ module Org = struct
                         keywords_rev := (key, value) :: !keywords_rev;
                         if String.equal key "TODO" then
                           (match Todo_config.parse_from_keyword_value value with
-                          | Some parsed -> todo_config := parsed
+                          | Some parsed ->
+                              if !has_explicit_todo_config then
+                                todo_config := Todo_config.merge !todo_config parsed
+                              else (
+                                todo_config := parsed;
+                                has_explicit_todo_config := true)
                           | None -> ())
                     | None ->
                         (match parse_block_begin line with

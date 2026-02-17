@@ -23,6 +23,7 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
 - `#+TODO: ... | ...` parsing for open/done state groups.
 - TODO keywords with fast-key/logging suffixes are normalized
   (for example `TODO(t)`, `WAIT(w@/!)`, `DONE(d!)`).
+- Multiple `#+TODO:` lines are merged into one effective workflow config.
 - References: `lib/oq.ml:369`, `lib/oq.ml:120`, `lib/oq.ml:795`.
 
 4. Planning metadata
