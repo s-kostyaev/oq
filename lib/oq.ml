@@ -577,7 +577,8 @@ module Org = struct
       | _ -> false
     in
     let is_trailing_trim_char = function
-      | '>' | ',' | '.' | ';' | ':' | '"' | '\'' | ')' | ']' -> true
+      | '>' | ',' | '.' | ';' | ':' | '"' | '\'' | ')' | ']' | '!' | '?' ->
+          true
       | _ -> false
     in
     let rec drop_leading index =
