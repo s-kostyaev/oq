@@ -414,7 +414,7 @@ module Org = struct
 
   type block_begin =
     | Supported of block_kind * string option
-    | Unsupported of string
+    | Opaque of string
 
   let parse_block_begin line =
     let trimmed = String.strip line in
@@ -445,7 +445,7 @@ module Org = struct
             |> List.hd
           in
           Some (Supported (Export, backend))
-      | _ -> Some (Unsupported kind_token)
+      | _ -> Some (Opaque kind_token)
 
   let parse_block_end line =
     let trimmed = String.strip line in
@@ -563,12 +563,25 @@ module Org = struct
     heading_id : int option;
   }
 
-  type open_block = {
-    kind : block_kind;
-    language : string option;
-    start_line : int;
-    heading_id : int option;
-  }
+  type open_block =
+    | Open_supported of {
+        kind : block_kind;
+        language : string option;
+        start_line : int;
+        heading_id : int option;
+      }
+    | Open_opaque of {
+        expected_end_token : string;
+        start_line : int;
+      }
+
+  let open_block_end_token = function
+    | Open_supported block_state -> block_kind_to_end_token block_state.kind
+    | Open_opaque block_state -> block_state.expected_end_token
+
+  let open_block_start_line = function
+    | Open_supported block_state -> block_state.start_line
+    | Open_opaque block_state -> block_state.start_line
 
   type open_table = {
     start_line : int;
@@ -724,25 +737,24 @@ module Org = struct
               (match parse_block_end line with
               | Some ending_kind
                 when String.equal ending_kind
-                       (block_kind_to_end_token block_state.kind)
-                ->
-                  let source =
-                    make_source_ref ~path ~start_line:block_state.start_line
-                      ~end_line:line_no
-                  in
-                  blocks_rev :=
-                    {
-                      kind = block_state.kind;
-                      language = block_state.language;
-                      heading_id = block_state.heading_id;
-                      source;
-                    }
-                    :: !blocks_rev;
+                       (open_block_end_token block_state) ->
+                  (match block_state with
+                  | Open_supported supported ->
+                      let source =
+                        make_source_ref ~path ~start_line:supported.start_line
+                          ~end_line:line_no
+                      in
+                      blocks_rev :=
+                        {
+                          kind = supported.kind;
+                          language = supported.language;
+                          heading_id = supported.heading_id;
+                          source;
+                        }
+                        :: !blocks_rev
+                  | Open_opaque _ -> ());
                   open_block_state := None
-              | Some _ ->
-                  raise
-                    (Invalid_argument
-                       (sprintf "line %d: mismatched block terminator" line_no))
+              | Some _ -> ()
               | None -> ())
           | None ->
               (match !open_drawer_state with
@@ -798,19 +810,24 @@ module Org = struct
                           | None -> ())
                     | None ->
                         (match parse_block_begin line with
-                        | Some (Unsupported block_kind) ->
-                            raise
-                              (Failure
-                                 (sprintf "UNSUPPORTED:%d:%s" line_no block_kind))
                         | Some (Supported (kind, language)) ->
                             open_block_state :=
                               Some
-                                {
-                                  kind;
-                                  language;
-                                  start_line = line_no;
-                                  heading_id = !current_heading_id;
-                                }
+                                (Open_supported
+                                   {
+                                     kind;
+                                     language;
+                                     start_line = line_no;
+                                     heading_id = !current_heading_id;
+                                   })
+                        | Some (Opaque kind_token) ->
+                            open_block_state :=
+                              Some
+                                (Open_opaque
+                                   {
+                                     expected_end_token = kind_token;
+                                     start_line = line_no;
+                                   })
                         | None ->
                             (match parse_drawer_open line with
                             | Some name ->
@@ -833,7 +850,8 @@ module Org = struct
 
         (match !open_block_state with
         | Some block_state ->
-            syntax_error ~line:block_state.start_line "unterminated block"
+            syntax_error ~line:(open_block_start_line block_state)
+              "unterminated block"
         | None ->
             match !open_drawer_state with
             | Some drawer_state ->
@@ -912,25 +930,6 @@ module Org = struct
                       };
                   })
       with
-      | Failure message when String.is_prefix message ~prefix:"UNSUPPORTED:" ->
-          (match String.split message ~on:':' with
-          | [ _; line_text; block_kind ] ->
-              let line = Int.of_string line_text in
-              Error
-                {
-                  path;
-                  reason = Diagnostic.Unsupported_construct;
-                  line = Some line;
-                  detail = sprintf "unsupported block construct %s" block_kind;
-                }
-          | _ ->
-              Error
-                {
-                  path;
-                  reason = Diagnostic.Internal_parser_error;
-                  line = None;
-                  detail = message;
-                })
       | Invalid_argument message when String.is_prefix message ~prefix:"line " ->
           (match String.split message ~on:':' with
           | line_prefix :: detail_parts ->

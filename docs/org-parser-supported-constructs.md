@@ -35,11 +35,14 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
 - References: `lib/oq.ml:382`, `lib/oq.ml:396`, `lib/oq.ml:763`.
 
 6. Blocks `#+BEGIN_...` / `#+END_...`
-- Supported block types:
+- Indexed block types:
   - `SRC` (optional language),
   - `EXAMPLE`,
   - `QUOTE`,
   - `EXPORT` (optional backend).
+- Other valid block types (for example `CENTER`, `VERSE`, `COMMENT`) are parsed as opaque regions:
+  - they do not fail parsing,
+  - they are not added to `index.blocks`.
 - References: `lib/oq.ml:419`, `lib/oq.ml:431`, `lib/oq.ml:463`.
 
 7. Links in text
@@ -54,16 +57,15 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
 
 ## Errors and Limitations
 
-1. Unsupported block types
-- Any `#+BEGIN_<TYPE>` where `<TYPE>` is not in `{SRC, EXAMPLE, QUOTE, EXPORT}` returns `unsupported_construct`.
-- Example: `#+BEGIN_CENTER`.
-- References: `lib/oq.ml:448`, `lib/oq.ml:915`, `test/org_parser_indexing.ml:87`.
-
-2. Structural syntax errors
+1. Structural syntax errors
 - Unterminated block -> `syntax_error`.
-- Mismatched `#+END_*` -> `syntax_error`.
 - Unterminated drawer -> `syntax_error`.
-- References: `lib/oq.ml:742`, `lib/oq.ml:834`, `test/org_parser_indexing.ml:79`.
+- References: `lib/oq.ml`, `test/org_parser_indexing.ml`.
+
+2. Indexing scope limitation for blocks
+- Only `{SRC, EXAMPLE, QUOTE, EXPORT}` appear in `index.blocks`.
+- Opaque block kinds are skipped from block index, but the document still parses.
+- References: `lib/oq.ml`, `test/org_parser_indexing.ml`.
 
 3. Encoding
 - Invalid UTF-8 input returns `invalid_utf8`.
@@ -76,4 +78,5 @@ Coverage is validated by `test/org_parser_indexing.ml`:
 - TODO/planning: `test/org_parser_indexing.ml:50`,
 - properties/drawers: `test/org_parser_indexing.ml:57`,
 - blocks/links/tables: `test/org_parser_indexing.ml:66`,
+- opaque block tolerance: `test/org_parser_indexing.ml`,
 - error mapping: `test/org_parser_indexing.ml:78`.

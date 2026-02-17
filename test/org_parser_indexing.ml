@@ -84,12 +84,48 @@ let () =
   | Ok _ -> failwith "expected parse failure for unterminated block"
 
 let () =
-  match Oq.Org.parse_string ~path:"unsupported.org" "#+BEGIN_CENTER\ntext\n#+END_CENTER\n" with
-  | Error { reason = Oq.Diagnostic.Unsupported_construct; line = Some 1; _ } -> ()
+  match
+    Oq.Org.parse_string ~path:"opaque-blocks.org"
+      {|
+* Root
+#+BEGIN_CENTER
+Centered text.
+#+END_CENTER
+
+#+BEGIN_COMMENT
+#+END_SRC
+* Not a heading inside comment block
+#+END_COMMENT
+
+#+BEGIN_VERSE
+Line one.
+Line two.
+#+END_VERSE
+
+#+BEGIN_SRC ocaml
+let x = 1
+#+END_SRC
+
+** Child
+SCHEDULED: <2026-02-18 Wed>
+|}
+  with
   | Error err ->
-      failwithf "expected unsupported_construct, got %s" 
+      failwithf "expected opaque block parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.headings = 2);
+      assert (List.length doc.index.blocks = 1);
+      assert (List.length doc.index.planning = 1)
+
+let () =
+  match Oq.Org.parse_string ~path:"broken-opaque.org" "#+BEGIN_CENTER\ntext\n" with
+  | Error { reason = Oq.Diagnostic.Syntax_error; line = Some 1; _ } -> ()
+  | Error err ->
+      failwithf "expected syntax_error for unterminated opaque block, got %s"
         (Oq.Diagnostic.parse_reason_to_string err.reason) ()
-  | Ok _ -> failwith "expected parse failure for unsupported construct"
+  | Ok _ -> failwith "expected parse failure for unterminated opaque block"
 
 let () =
   match
