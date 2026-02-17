@@ -1246,7 +1246,12 @@ let () =
       failwithf "expected indented LINK keyword to stay inactive, got %s (%s)"
         (Oq.Diagnostic.parse_reason_to_string err.reason)
         err.detail ()
-  | Ok doc -> assert (List.length doc.index.links = 0)
+  | Ok doc ->
+      assert (List.length doc.index.links = 1);
+      assert
+        (String.equal
+           (List.hd_exn doc.index.links).target
+           "https://github.com/%s")
 
 let () =
   match

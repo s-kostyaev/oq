@@ -130,6 +130,8 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
   (`gh:owner/repo` can appear before its `#+LINK: gh ...` declaration).
 - `#+LINK` inside opaque regions (block bodies and drawer bodies) is ignored
   (only real keyword lines define abbreviations).
+- Indented keyword-like lines (for example `  #+LINK: ...`) do not define
+  abbreviations, but are otherwise treated as plain text for link extraction.
 - Plain link tokenization is whitespace-aware (spaces and tabs).
 - Angle links `<...>` are parsed before tokenization, so targets with spaces are preserved
   (for example `<https://example.com/path with spaces>` and `<bbdb:R.* Stallman>`).

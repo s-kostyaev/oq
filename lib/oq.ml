@@ -1369,7 +1369,9 @@ module Org = struct
                                      })
                           | Some _ -> ()
                           | None ->
-                              if is_indented_keyword_like_line line then ()
+                              if is_indented_keyword_like_line line then
+                                add_links ~line ~line_no
+                                  ~heading_id:!current_heading_id
                               else
                               (match parse_drawer_open line with
                               | Some name

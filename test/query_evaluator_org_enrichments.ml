@@ -997,7 +997,10 @@ let () =
 gh:ocaml/dune
 |}
   in
-  assert (String.equal (run_ok inline_doc ".links | .length") "0")
+  assert (String.equal (run_ok inline_doc ".links | .length") "1");
+  assert_contains
+    (run_ok inline_doc ".links | map(.target)")
+    "https://github.com/%s"
 
 let () =
   let inline_doc =
