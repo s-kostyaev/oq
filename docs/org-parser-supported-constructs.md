@@ -55,6 +55,8 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
   avoiding false unterminated-drawer errors on plain content.
 - Drawer names are limited to `[A-Za-z0-9_-]+`; tokens like `:+1:` are treated
   as text instead of drawer markers.
+- Custom drawer names are recognized in uppercase form; lowercase tokens like
+  `:smile:` are treated as text (while known drawers like `:properties:` remain supported).
 - Drawer markers must start at column 1; indented `:NAME:` lines are treated as
   regular text (prevents false drawer opens on indented content).
 - Drawer closing marker `:END:` is matched case-insensitively and may be

@@ -458,6 +458,10 @@ module Org = struct
     let is_valid_drawer_name name =
       not (String.is_empty name) && String.for_all name ~f:is_valid_drawer_char
     in
+    let is_known_drawer_name name =
+      String.Caseless.equal name "PROPERTIES"
+      || String.Caseless.equal name "LOGBOOK"
+    in
     if len < 3 then None
     else if not (Char.equal trimmed.[0] ':' && Char.equal trimmed.[len - 1] ':')
     then None
@@ -468,6 +472,7 @@ module Org = struct
       else if not (String.equal raw_name name) then None
       else if String.exists name ~f:Char.is_whitespace then None
       else if not (is_valid_drawer_name name) then None
+      else if (not (is_known_drawer_name name)) && not (String.equal name (String.uppercase name)) then None
       else if String.Caseless.equal name "END" then None
       else Some name
 
