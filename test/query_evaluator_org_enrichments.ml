@@ -462,6 +462,21 @@ bbdb:John_Doe
 
 let () =
   let inline_doc =
+    parse_inline "links-mail-schemes.org"
+      {|
+* Note
+mhe:inbox
+wl:folder
+vm:inbox
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".links | .length") "3");
+  assert_contains (run_ok inline_doc ".links | map(.target)") "mhe:inbox";
+  assert_contains (run_ok inline_doc ".links | map(.target)") "wl:folder";
+  assert_contains (run_ok inline_doc ".links | map(.target)") "vm:inbox"
+
+let () =
+  let inline_doc =
     parse_inline "links-bracket.org"
       {|
 * Links

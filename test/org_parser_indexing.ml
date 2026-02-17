@@ -719,6 +719,27 @@ let () =
 
 let () =
   match
+    Oq.Org.parse_string ~path:"links-mail-schemes.org"
+      "* Note\nmhe:inbox\nwl:folder\nvm:inbox\n"
+  with
+  | Error err ->
+      failwithf "expected additional mail plain schemes parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.links = 3);
+      assert
+        (List.exists doc.index.links ~f:(fun link ->
+             String.equal link.target "mhe:inbox"));
+      assert
+        (List.exists doc.index.links ~f:(fun link ->
+             String.equal link.target "wl:folder"));
+      assert
+        (List.exists doc.index.links ~f:(fun link ->
+             String.equal link.target "vm:inbox"))
+
+let () =
+  match
     Oq.Org.parse_string ~path:"links-bracket.org"
       "* Links\n[[https://example.com/docs][Example Docs]]\n"
   with
