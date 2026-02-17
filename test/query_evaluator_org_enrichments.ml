@@ -410,6 +410,30 @@ let () =
 
 let () =
   let inline_doc =
+    parse_inline "block-unclosed-supported.org"
+      {|
+* H
+#+BEGIN_SRC ocaml
+** Child
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".headings | .length") "2");
+  assert (String.equal (run_ok inline_doc ".code | .length") "0")
+
+let () =
+  let inline_doc =
+    parse_inline "block-unclosed-opaque.org"
+      {|
+* H
+#+BEGIN_CENTER
+** Child
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".headings | .length") "2");
+  assert (String.equal (run_ok inline_doc ".code | .length") "0")
+
+let () =
+  let inline_doc =
     parse_inline "links-tab.org"
       {|
 * Note

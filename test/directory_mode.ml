@@ -181,7 +181,8 @@ let () =
 let () =
   with_temp_dir (fun root ->
       let good = write_file root "good.org" "* Alpha\nBody\n" in
-      ignore (write_file root "bad.org" "#+BEGIN_SRC ocaml\nlet x = 1\n");
+      let invalid = String.make 1 (Char.of_int_exn 0xFF) in
+      ignore (write_file root "bad.org" invalid);
       ignore (write_file root ".secret.org" "* Hidden\n");
       Caml_unix.symlink good (Filename.concat root "symlink.org");
       let outcome = run_directory ~query:(Some ".headings") root in
@@ -197,7 +198,7 @@ let () =
       assert
         (List.exists outcome.stderr_lines ~f:(fun line ->
              String.is_substring line
-               ~substring:"Warning: failed to parse bad.org: syntax_error")))
+               ~substring:"Warning: failed to parse bad.org: invalid_utf8")))
 
 let () =
   with_temp_dir (fun root ->
@@ -240,6 +241,34 @@ let () =
       assert (extract_counter stdout "parse_failed" = 0);
       assert_contains stdout "dynamic-block-bad-end.org:";
       assert_contains stdout "  1")
+
+let () =
+  with_temp_dir (fun root ->
+      ignore
+        (write_file root "block-unclosed-supported.org"
+           "* H\n#+BEGIN_SRC ocaml\n** Child\n");
+      let outcome = run_directory ~query:(Some ".headings | .length") root in
+      assert_exit outcome Oq.Exit_code.Success;
+      let stdout = require_stdout outcome in
+      assert (extract_counter stdout "candidate_org" = 1);
+      assert (extract_counter stdout "parsed_ok" = 1);
+      assert (extract_counter stdout "parse_failed" = 0);
+      assert_contains stdout "block-unclosed-supported.org:";
+      assert_contains stdout "  2")
+
+let () =
+  with_temp_dir (fun root ->
+      ignore
+        (write_file root "block-unclosed-opaque.org"
+           "* H\n#+BEGIN_CENTER\n** Child\n");
+      let outcome = run_directory ~query:(Some ".headings | .length") root in
+      assert_exit outcome Oq.Exit_code.Success;
+      let stdout = require_stdout outcome in
+      assert (extract_counter stdout "candidate_org" = 1);
+      assert (extract_counter stdout "parsed_ok" = 1);
+      assert (extract_counter stdout "parse_failed" = 0);
+      assert_contains stdout "block-unclosed-opaque.org:";
+      assert_contains stdout "  2")
 
 let () =
   with_temp_dir (fun root ->
@@ -1093,8 +1122,10 @@ let () =
 
 let () =
   with_temp_dir (fun root ->
-      ignore (write_file root "broken-a.org" "#+BEGIN_SRC ocaml\nlet a = 1\n");
-      ignore (write_file root "broken-b.org" "#+BEGIN_QUOTE\nunterminated\n");
+      let invalid_a = String.make 1 (Char.of_int_exn 0xFF) in
+      let invalid_b = String.make 1 (Char.of_int_exn 0xFE) in
+      ignore (write_file root "broken-a.org" invalid_a);
+      ignore (write_file root "broken-b.org" invalid_b);
       let outcome = run_directory ~query:(Some ".headings") root in
       assert_exit outcome Oq.Exit_code.Parse_coverage_error;
       let stdout = require_stdout outcome in
@@ -1116,7 +1147,8 @@ let () =
 let () =
   with_temp_dir (fun root ->
       ignore (write_file root "good.org" "* Alpha\nBody\n");
-      ignore (write_file root "broken.org" "#+BEGIN_SRC ocaml\nlet x = 1\n");
+      let invalid = String.make 1 (Char.of_int_exn 0xFF) in
+      ignore (write_file root "broken.org" invalid);
       let outcome = run_directory ~strict:true ~query:(Some ".headings") root in
       assert_exit outcome Oq.Exit_code.Parse_coverage_error;
       let stdout = require_stdout outcome in

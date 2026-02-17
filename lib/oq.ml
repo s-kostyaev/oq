@@ -583,6 +583,17 @@ module Org = struct
       in
       Some kind
 
+  let has_block_end_ahead ~lines ~start_index ~expected_end_token =
+    let line_count = Array.length lines in
+    let rec loop index =
+      if index >= line_count then false
+      else
+        match parse_block_end lines.(index) with
+        | Some ending_kind when String.equal ending_kind expected_end_token -> true
+        | _ -> loop (index + 1)
+    in
+    loop start_index
+
   let parse_dynamic_block_begin line =
     let trimmed = String.strip line in
     String.is_prefix (String.uppercase trimmed) ~prefix:"#+BEGIN:"
@@ -994,7 +1005,10 @@ module Org = struct
                     if is_comment_line line then ()
                     else
                       match parse_block_begin line with
-                      | Some (Supported (kind, language)) ->
+                      | Some (Supported (kind, language))
+                        when has_block_end_ahead ~lines
+                               ~start_index:(line_index + 1)
+                               ~expected_end_token:(block_kind_to_end_token kind) ->
                           open_block_state :=
                             Some
                               (Open_supported
@@ -1004,7 +1018,10 @@ module Org = struct
                                    start_line = line_index + 1;
                                    heading_id = None;
                                  })
-                      | Some (Opaque kind_token) ->
+                      | Some (Opaque kind_token)
+                        when has_block_end_ahead ~lines
+                               ~start_index:(line_index + 1)
+                               ~expected_end_token:kind_token ->
                           open_block_state :=
                             Some
                               (Open_opaque
@@ -1012,6 +1029,7 @@ module Org = struct
                                    expected_end_token = kind_token;
                                    start_line = line_index + 1;
                                  })
+                      | Some _ -> ()
                       | None -> (
                           match parse_drawer_open line with
                           | Some name
@@ -1292,7 +1310,10 @@ module Org = struct
                         if is_comment_line line then ()
                         else
                           (match parse_block_begin line with
-                          | Some (Supported (kind, language)) ->
+                          | Some (Supported (kind, language))
+                            when has_block_end_ahead ~lines
+                                   ~start_index:(line_index + 1)
+                                   ~expected_end_token:(block_kind_to_end_token kind) ->
                               open_block_state :=
                                 Some
                                   (Open_supported
@@ -1302,7 +1323,10 @@ module Org = struct
                                        start_line = line_no;
                                        heading_id = !current_heading_id;
                                      })
-                          | Some (Opaque kind_token) ->
+                          | Some (Opaque kind_token)
+                            when has_block_end_ahead ~lines
+                                   ~start_index:(line_index + 1)
+                                   ~expected_end_token:kind_token ->
                               open_block_state :=
                                 Some
                                   (Open_opaque
@@ -1310,6 +1334,7 @@ module Org = struct
                                        expected_end_token = kind_token;
                                        start_line = line_no;
                                      })
+                          | Some _ -> ()
                           | None ->
                               (match parse_drawer_open line with
                               | Some name

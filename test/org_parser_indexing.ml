@@ -178,12 +178,17 @@ let () =
   | _ -> failwith "expected a single table"
 
 let () =
-  match Oq.Org.parse_string ~path:"broken.org" "#+BEGIN_SRC ocaml\nlet x = 1\n" with
-  | Error { reason = Oq.Diagnostic.Syntax_error; line = Some 1; _ } -> ()
+  match
+    Oq.Org.parse_string ~path:"broken.org"
+      "* H\n#+BEGIN_SRC ocaml\n** Child\n"
+  with
   | Error err ->
-      failwithf "expected syntax_error, got %s" 
-        (Oq.Diagnostic.parse_reason_to_string err.reason) ()
-  | Ok _ -> failwith "expected parse failure for unterminated block"
+      failwithf "expected unclosed supported block parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.headings = 2);
+      assert (List.is_empty doc.index.blocks)
 
 let () =
   match
@@ -222,12 +227,17 @@ SCHEDULED: <2026-02-18 Wed>
       assert (List.length doc.index.planning = 1)
 
 let () =
-  match Oq.Org.parse_string ~path:"broken-opaque.org" "#+BEGIN_CENTER\ntext\n" with
-  | Error { reason = Oq.Diagnostic.Syntax_error; line = Some 1; _ } -> ()
+  match
+    Oq.Org.parse_string ~path:"broken-opaque.org"
+      "* H\n#+BEGIN_CENTER\n** Child\n"
+  with
   | Error err ->
-      failwithf "expected syntax_error for unterminated opaque block, got %s"
-        (Oq.Diagnostic.parse_reason_to_string err.reason) ()
-  | Ok _ -> failwith "expected parse failure for unterminated opaque block"
+      failwithf "expected unclosed opaque block parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.headings = 2);
+      assert (List.is_empty doc.index.blocks)
 
 let () =
   match
