@@ -57,7 +57,7 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
   as text instead of drawer markers.
 - Known drawers (`PROPERTIES`/`LOGBOOK`, case-insensitive) are recognized directly.
 - Custom `:NAME:` drawers are recognized conservatively when a matching `:END:`
-  appears before the next heading; this prevents false opens on plain tokens
+  appears later in the file; this prevents false opens on isolated plain tokens
   while keeping drawer internals opaque to block/link parsing.
 - Drawer markers must start at column 1; indented `:NAME:` lines are treated as
   regular text (prevents false drawer opens on indented content).

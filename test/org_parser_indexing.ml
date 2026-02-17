@@ -539,6 +539,19 @@ let () =
 
 let () =
   match
+    Oq.Org.parse_string ~path:"custom-drawer-heading-like.org"
+      "* Note\n:MYDRAWER:\n* plain\n#+BEGIN_SRC\n:END:\n"
+  with
+  | Error err ->
+      failwithf "expected custom drawer with heading-like content parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.headings = 1);
+      assert (List.length doc.index.drawers = 1)
+
+let () =
+  match
     Oq.Org.parse_string ~path:"indented-colon.org"
       "* Note\n  :foo:\n  literal text\n"
   with

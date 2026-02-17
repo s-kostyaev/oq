@@ -322,6 +322,20 @@ literal
 
 let () =
   let inline_doc =
+    parse_inline "custom-drawer-heading-like.org"
+      {|
+* Note
+:MYDRAWER:
+* plain
+#+BEGIN_SRC
+:END:
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".headings | .length") "1");
+  assert (String.equal (run_ok inline_doc ".code | .length") "0")
+
+let () =
+  let inline_doc =
     parse_inline "indented-colon.org"
       {|
 * Note
