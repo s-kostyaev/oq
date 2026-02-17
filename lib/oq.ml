@@ -460,6 +460,7 @@ module Org = struct
       if String.is_empty name then None
       else if not (String.equal raw_name name) then None
       else if String.exists name ~f:Char.is_whitespace then None
+      else if String.mem name ':' then None
       else if String.Caseless.equal name "END" then None
       else Some name
 

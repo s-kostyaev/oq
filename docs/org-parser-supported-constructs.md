@@ -51,6 +51,8 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
 - Property extraction (`:KEY: VALUE`) from `:PROPERTIES:`.
 - Drawer names must be bare (no surrounding/interior whitespace), so fixed-width
   text lines like `: code:` are not treated as drawers.
+- Drawer names cannot contain `:`; lines like `:a:b:` are treated as text,
+  avoiding false unterminated-drawer errors on plain content.
 - Drawer markers must start at column 1; indented `:NAME:` lines are treated as
   regular text (prevents false drawer opens on indented content).
 - Drawer closing marker `:END:` is matched case-insensitively and may be
