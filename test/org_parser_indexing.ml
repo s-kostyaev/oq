@@ -231,6 +231,19 @@ let () =
 
 let () =
   match
+    Oq.Org.parse_string ~path:"dynamic-block.org"
+      "* Root\n#+BEGIN: clocktable :scope file\n:UNRELATED:\n#+END:\n** Child\n"
+  with
+  | Error err ->
+      failwithf "expected dynamic block parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.headings = 2);
+      assert (List.is_empty doc.index.drawers)
+
+let () =
+  match
     Oq.Org.parse_string ~path:"export.org"
       "#+begin_export html\n<div>ok</div>\n#+end_export\n"
   with

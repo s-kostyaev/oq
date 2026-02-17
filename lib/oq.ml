@@ -535,6 +535,14 @@ module Org = struct
       in
       Some kind
 
+  let parse_dynamic_block_begin line =
+    let trimmed = String.strip line in
+    String.is_prefix (String.uppercase trimmed) ~prefix:"#+BEGIN:"
+
+  let is_dynamic_block_end line =
+    let trimmed = String.strip line in
+    String.is_prefix (String.uppercase trimmed) ~prefix:"#+END:"
+
   let block_kind_to_end_token = function
     | Src -> "SRC"
     | Example -> "EXAMPLE"
@@ -711,14 +719,19 @@ module Org = struct
         expected_end_token : string;
         start_line : int;
       }
+    | Open_dynamic of {
+        start_line : int;
+      }
 
   let open_block_end_token = function
     | Open_supported block_state -> block_kind_to_end_token block_state.kind
     | Open_opaque block_state -> block_state.expected_end_token
+    | Open_dynamic _ -> failwith "internal error: dynamic block has dedicated end token"
 
   let open_block_start_line = function
     | Open_supported block_state -> block_state.start_line
     | Open_opaque block_state -> block_state.start_line
+    | Open_dynamic block_state -> block_state.start_line
 
   type open_table = {
     start_line : int;
@@ -873,28 +886,33 @@ module Org = struct
 
           match !open_block_state with
           | Some block_state ->
-              (match parse_block_end line with
-              | Some ending_kind
-                when String.equal ending_kind
-                       (open_block_end_token block_state) ->
-                  (match block_state with
-                  | Open_supported supported ->
-                      let source =
-                        make_source_ref ~path ~start_line:supported.start_line
-                          ~end_line:line_no
-                      in
-                      blocks_rev :=
-                        {
-                          kind = supported.kind;
-                          language = supported.language;
-                          heading_id = supported.heading_id;
-                          source;
-                        }
-                        :: !blocks_rev
-                  | Open_opaque _ -> ());
-                  open_block_state := None
-              | Some _ -> ()
-              | None -> ())
+              (match block_state with
+              | Open_dynamic _ ->
+                  if is_dynamic_block_end line then open_block_state := None
+              | Open_supported _ | Open_opaque _ -> (
+                  match parse_block_end line with
+                  | Some ending_kind
+                    when String.equal ending_kind
+                           (open_block_end_token block_state) ->
+                      (match block_state with
+                      | Open_supported supported ->
+                          let source =
+                            make_source_ref ~path ~start_line:supported.start_line
+                              ~end_line:line_no
+                          in
+                          blocks_rev :=
+                            {
+                              kind = supported.kind;
+                              language = supported.language;
+                              heading_id = supported.heading_id;
+                              source;
+                            }
+                            :: !blocks_rev
+                      | Open_opaque _ -> ()
+                      | Open_dynamic _ -> assert false);
+                      open_block_state := None
+                  | Some _ -> ()
+                  | None -> ()))
           | None ->
               (match !open_drawer_state with
               | Some drawer_state ->
@@ -940,19 +958,22 @@ module Org = struct
                             })
                   else (
                     finalize_table (line_no - 1);
-                    match parse_keyword_line line with
-                    | Some (key, value) ->
-                        keywords_rev := (key, value) :: !keywords_rev;
-                        if Todo_config.is_todo_keyword_key key then
-                          (match Todo_config.parse_from_keyword_value value with
-                          | Some parsed ->
-                              if !has_explicit_todo_config then
-                                todo_config := Todo_config.merge !todo_config parsed
-                              else (
-                                todo_config := parsed;
-                                has_explicit_todo_config := true)
-                          | None -> ())
-                    | None ->
+                    if parse_dynamic_block_begin line then
+                      open_block_state := Some (Open_dynamic { start_line = line_no })
+                    else
+                      match parse_keyword_line line with
+                      | Some (key, value) ->
+                          keywords_rev := (key, value) :: !keywords_rev;
+                          if Todo_config.is_todo_keyword_key key then
+                            (match Todo_config.parse_from_keyword_value value with
+                            | Some parsed ->
+                                if !has_explicit_todo_config then
+                                  todo_config := Todo_config.merge !todo_config parsed
+                                else (
+                                  todo_config := parsed;
+                                  has_explicit_todo_config := true)
+                            | None -> ())
+                      | None ->
                         if is_comment_line line then ()
                         else
                           (match parse_block_begin line with
@@ -3261,5 +3282,3 @@ module Cli = struct
                     (sprintf "unsupported input path kind for %S" request.input_path);
                 ])
 end
-  let has_org_extension path =
-    String.Caseless.equal (Stdlib.Filename.extension path) ".org"
