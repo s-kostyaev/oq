@@ -350,6 +350,20 @@ let () =
 
 let () =
   with_temp_dir (fun root ->
+      ignore
+        (write_file root "planning-diary-sexp.org"
+           "* TODO Recurring\nSCHEDULED: <%%(diary-float t 5 2)>\n");
+      let outcome = run_directory ~query:(Some ".scheduled | .length") root in
+      assert_exit outcome Oq.Exit_code.Success;
+      let stdout = require_stdout outcome in
+      assert (extract_counter stdout "candidate_org" = 1);
+      assert (extract_counter stdout "parsed_ok" = 1);
+      assert (extract_counter stdout "parse_failed" = 0);
+      assert_contains stdout "planning-diary-sexp.org:";
+      assert_contains stdout "  1")
+
+let () =
+  with_temp_dir (fun root ->
       ignore (write_file root "broken-a.org" "#+BEGIN_SRC ocaml\nlet a = 1\n");
       ignore (write_file root "broken-b.org" "#+BEGIN_QUOTE\nunterminated\n");
       let outcome = run_directory ~query:(Some ".headings") root in

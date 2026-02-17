@@ -325,6 +325,22 @@ This sentence mentions SCHEDULED: <2026-02-18 Wed> but is plain text.
   assert (String.equal (run_ok inline_doc ".scheduled | .length") "0")
 
 let () =
+  let inline_doc =
+    parse_inline "planning-diary-sexp.org"
+      {|
+* TODO Recurring
+SCHEDULED: <%%(diary-float t 5 2)>
+|}
+  in
+  let now = "2026-02-17T08:00:00-08:00" in
+  let tz = "America/Los_Angeles" in
+  assert (String.equal (run_ok inline_doc ".scheduled | .length") "1");
+  assert
+    (String.equal
+       (run_ok ~now ~tz inline_doc ".scheduled('next_7d') | .length")
+       "0")
+
+let () =
   let todo = parse_fixture "fixtures/corpus/todo_workflows.org" in
   assert_contains
     (run_error ~now:"2026-02-17" todo ".headings | .length")

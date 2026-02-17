@@ -358,6 +358,22 @@ let () =
 
 let () =
   match
+    Oq.Org.parse_string ~path:"planning-diary-sexp.org"
+      "* TODO Recurring\nSCHEDULED: <%%(diary-float t 5 2)>\n"
+  with
+  | Error err ->
+      failwithf "expected diary-sexp planning parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.planning = 1);
+      assert
+        (String.equal
+           (List.hd_exn doc.index.planning).raw_value
+           "<%%(diary-float t 5 2)>")
+
+let () =
+  match
     Oq.Org.parse_string ~path:"fixed-width.org"
       "* Note\n: code:\n: another line\n"
   with

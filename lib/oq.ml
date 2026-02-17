@@ -2642,25 +2642,30 @@ module Eval = struct
         in
         let matched_entries =
           List.filter entries ~f:(fun entry ->
-              match parse_org_timestamp ~zone:date_context.zone entry.raw_value with
-              | None -> false
-              | Some timestamp -> (
-                  match range with
-                  | None -> true
-                  | Some Date_context.Overdue ->
-                      Time_float.compare timestamp date_context.day_start < 0
-                      &&
-                      if String.equal name "scheduled" || String.equal name "deadline"
-                      then
-                        let heading = heading_by_id runtime entry.heading_id in
-                        not (heading_is_done doc heading)
-                      else true
-                  | Some range ->
-                      let start_time, stop_time =
-                        Date_context.range_bounds date_context range
-                      in
-                      Time_float.compare timestamp start_time >= 0
-                      && Time_float.compare timestamp stop_time < 0))
+              match range with
+              | None -> true
+              | Some _ -> (
+                  match parse_org_timestamp ~zone:date_context.zone entry.raw_value with
+                  | None -> false
+                  | Some timestamp -> (
+                      match range with
+                      | None -> assert false
+                      | Some Date_context.Overdue ->
+                          Time_float.compare timestamp date_context.day_start < 0
+                          &&
+                          if
+                            String.equal name "scheduled"
+                            || String.equal name "deadline"
+                          then
+                            let heading = heading_by_id runtime entry.heading_id in
+                            not (heading_is_done doc heading)
+                          else true
+                      | Some range ->
+                          let start_time, stop_time =
+                            Date_context.range_bounds date_context range
+                          in
+                          Time_float.compare timestamp start_time >= 0
+                          && Time_float.compare timestamp stop_time < 0)))
         in
         let heading_ids = Int.Hash_set.create () in
         List.iter matched_entries ~f:(fun entry ->

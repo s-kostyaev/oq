@@ -41,6 +41,8 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
 - Multiple planning keywords on one line are split correctly into separate values.
 - Planning keywords are recognized only on planning lines
   (plain text mentioning `SCHEDULED:` does not create planning entries).
+- `.scheduled/.deadline/.closed` without a range include entries even when timestamp
+  format is unsupported for date-range filtering.
 - References: `lib/oq.ml:528`, `lib/oq.ml:705`.
 
 6. Drawers and properties
