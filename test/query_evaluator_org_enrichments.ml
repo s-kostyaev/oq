@@ -271,6 +271,18 @@ text
 
 let () =
   let inline_doc =
+    parse_inline "emoji-token.org"
+      {|
+* Note
+:+1:
+text
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".headings | .length") "1");
+  assert (String.equal (run_ok inline_doc ".properties | .length") "0")
+
+let () =
+  let inline_doc =
     parse_inline "indented-colon.org"
       {|
 * Note

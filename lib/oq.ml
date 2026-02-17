@@ -451,6 +451,13 @@ module Org = struct
   let parse_drawer_open line =
     let trimmed = String.rstrip line in
     let len = String.length trimmed in
+    let is_valid_drawer_char = function
+      | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_' | '-' -> true
+      | _ -> false
+    in
+    let is_valid_drawer_name name =
+      not (String.is_empty name) && String.for_all name ~f:is_valid_drawer_char
+    in
     if len < 3 then None
     else if not (Char.equal trimmed.[0] ':' && Char.equal trimmed.[len - 1] ':')
     then None
@@ -460,7 +467,7 @@ module Org = struct
       if String.is_empty name then None
       else if not (String.equal raw_name name) then None
       else if String.exists name ~f:Char.is_whitespace then None
-      else if String.mem name ':' then None
+      else if not (is_valid_drawer_name name) then None
       else if String.Caseless.equal name "END" then None
       else Some name
 

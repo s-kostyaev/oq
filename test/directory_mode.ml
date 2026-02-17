@@ -436,6 +436,18 @@ let () =
 
 let () =
   with_temp_dir (fun root ->
+      ignore (write_file root "emoji-token.org" "* Note\n:+1:\ntext\n");
+      let outcome = run_directory ~query:(Some ".headings | .length") root in
+      assert_exit outcome Oq.Exit_code.Success;
+      let stdout = require_stdout outcome in
+      assert (extract_counter stdout "candidate_org" = 1);
+      assert (extract_counter stdout "parsed_ok" = 1);
+      assert (extract_counter stdout "parse_failed" = 0);
+      assert_contains stdout "emoji-token.org:";
+      assert_contains stdout "  1")
+
+let () =
+  with_temp_dir (fun root ->
       ignore
         (write_file root "drawer-indented-end.org"
            "* Note\n:PROPERTIES:\n:OWNER: Alice\n  :END:\n");

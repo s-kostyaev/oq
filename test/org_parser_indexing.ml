@@ -491,6 +491,16 @@ let () =
       assert (List.is_empty doc.index.drawers)
 
 let () =
+  match Oq.Org.parse_string ~path:"emoji-token.org" "* Note\n:+1:\ntext\n" with
+  | Error err ->
+      failwithf "expected emoji-token parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.headings = 1);
+      assert (List.is_empty doc.index.drawers)
+
+let () =
   match
     Oq.Org.parse_string ~path:"indented-colon.org"
       "* Note\n  :foo:\n  literal text\n"
