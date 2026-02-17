@@ -341,6 +341,17 @@ shell:echo hello
 
 let () =
   let inline_doc =
+    parse_inline "links-doi.org"
+      {|
+* Note
+doi:10.1000/182
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".links | .length") "1");
+  assert_contains (run_ok inline_doc ".links | map(.target)") "doi:10.1000/182"
+
+let () =
+  let inline_doc =
     parse_inline "links-bracket.org"
       {|
 * Links
