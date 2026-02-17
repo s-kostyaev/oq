@@ -62,6 +62,8 @@ Agents can safely diff outputs between runs using this order.
 
 ## 6. Minimal Agent Playbook (Bootstrap)
 
+For the full M4 cookbook and troubleshooting flow, see `docs/agent-playbook.md`.
+
 1. Run structural query first (when available), then narrow.
 2. Avoid full-file extraction until a section is identified.
 3. If a query fails with `1`, prefer automatic correction and single retry.
