@@ -890,6 +890,13 @@ module Org = struct
         let todo_config = ref Todo_config.default in
         let has_explicit_todo_config = ref false in
         let custom_link_types = String.Hash_set.create () in
+        Array.iter lines ~f:(fun line ->
+            match parse_keyword_line line with
+            | Some (key, value) when String.equal key "LINK" -> (
+                match parse_link_abbrev_keyword_value value with
+                | Some abbrev -> Hash_set.add custom_link_types abbrev
+                | None -> ())
+            | _ -> ());
         let keywords_rev = ref [] in
         let heading_stack = ref [] in
         let current_heading_id = ref None in

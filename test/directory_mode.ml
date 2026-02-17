@@ -695,6 +695,20 @@ let () =
 let () =
   with_temp_dir (fun root ->
       ignore
+        (write_file root "links-custom-abbrev-late.org"
+           "* Note\ngh:ocaml/dune\n#+LINK: gh https://github.com/%s\n");
+      let outcome = run_directory ~query:(Some ".links | .length") root in
+      assert_exit outcome Oq.Exit_code.Success;
+      let stdout = require_stdout outcome in
+      assert (extract_counter stdout "candidate_org" = 1);
+      assert (extract_counter stdout "parsed_ok" = 1);
+      assert (extract_counter stdout "parse_failed" = 0);
+      assert_contains stdout "links-custom-abbrev-late.org:";
+      assert_contains stdout "  1")
+
+let () =
+  with_temp_dir (fun root ->
+      ignore
         (write_file root "links-bracket.org"
            "* Links\n[[https://example.com/docs][Example Docs]]\n");
       let outcome = run_directory ~query:(Some ".links | .length") root in

@@ -102,6 +102,8 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
 - Plain `mhe:...`, `wl:...`, `vm:...`, and `vm-imap:...` links are also recognized.
 - `#+LINK: abbrev ...` keyword definitions are honored for plain links
   (for example `#+LINK: gh https://github.com/%s` enables `gh:owner/repo`).
+- `#+LINK` abbreviations are collected file-wide, so usage order is flexible
+  (`gh:owner/repo` can appear before its `#+LINK: gh ...` declaration).
 - Plain link tokenization is whitespace-aware (spaces and tabs).
 - Angle links `<...>` are parsed before tokenization, so targets with spaces are preserved
   (for example `<https://example.com/path with spaces>` and `<bbdb:R.* Stallman>`).
