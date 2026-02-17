@@ -7,6 +7,45 @@ description: Query Org-mode files and directories with oq using deterministic, s
 
 Use this skill to minimize context usage while keeping results deterministic.
 
+`oq` does not decide the answer for you. It externalizes Org structure into context so you can reason from evidence.
+
+```text
+Org files -> oq query -> structure in context -> reasoning -> answer
+```
+
+## The Pattern
+
+```text
+1. Discover  -> oq <path> .tree / .headings / .todos / .search('x')
+2. Narrow    -> filter(...), [i], [start:end], .section("title", start:end)
+3. Extract   -> .text only after one target section is identified
+4. Verify    -> rerun exact command when deterministic output matters
+```
+
+## Quick Reference
+
+```bash
+# Structure and triage
+oq file.org .tree
+oq file.org ".headings | map(.title)"
+oq dir/ ".tree | .length"
+oq dir/ ".search('incident')"
+
+# Tasks and dates
+oq tasks.org ".todos | map(.title)"
+oq tasks.org ".todos | filter(.state == 'NEXT') | map(.title)"
+oq --now 2026-02-17T08:00:00-08:00 --tz America/Los_Angeles tasks.org ".deadline('next_7d') | map(.title)"
+
+# Targeted extraction
+oq file.org ".section('Inbox', 42:68) | .text"
+oq file.org ".section_contains('release') | .length"
+
+# Metadata
+oq file.org ".property('OWNER') | map(.value)"
+oq file.org ".tags"
+oq file.org ".links | map(.target)"
+```
+
 ## Enforce Low-Context Strategy
 
 1. Start with structure, not prose.
@@ -14,6 +53,7 @@ Use this skill to minimize context usage while keeping results deterministic.
 3. Project only needed fields with `map(...)`.
 4. Use directory mode only when cross-file coverage is required.
 5. Keep commands stable across retries.
+6. Ask for counts first when match sets may be large.
 
 Preferred progression:
 
@@ -31,6 +71,13 @@ oq --now 2026-02-17T08:00:00-08:00 --tz America/Los_Angeles tasks.org ".deadline
 ```
 
 Do not change query text between retries unless correcting a specific error.
+
+## Bounded Output Rules
+
+1. For potentially large results, run `| .length` first.
+2. Sample with `[0:10]` or stronger filters before requesting text.
+3. Return projected fields (`title`, `state`, `path`, `deadline`) before full section data.
+4. Extract `.text` only for the final, smallest possible target.
 
 ## Query Patterns
 
@@ -52,6 +99,8 @@ oq notes.org ".search('incident')"
 oq notes.org ".tree | filter(startswith(.title, 'In')) | map(.start_line)"
 oq notes.org ".tree | filter(.level == 1) | map(.title)"
 oq notes/ ".tree | filter(.path == 'roadmap.org') | map(.title)"
+oq notes.org ".search('release') | .length"
+oq notes.org ".search('release')[0:5]"
 ```
 
 ### Targeted section extraction
@@ -72,14 +121,75 @@ oq notes.org ".links | map(.target)"
 ### Directory scans with bounded output
 
 ```bash
+oq notes/ ".search('oauth') | .length"
+oq notes/ ".search('oauth')[0:10]"
 oq notes/ ".todos | filter(.state == 'NEXT') | map(.title)"
-oq notes/ ".search('oauth')"
 ```
 
 Use `--strict` only when parse completeness is required:
 
 ```bash
 oq --strict notes/ ".headings | .length"
+```
+
+## Anti-Patterns
+
+Bad: immediate broad text extraction
+
+```bash
+oq notes/ ".search('incident') | .text"
+```
+
+Good: count -> narrow -> extract
+
+```bash
+oq notes/ ".search('incident') | .length"
+oq notes/ ".search('incident')[0:5] | map(.path)"
+oq notes.org ".section('Incident Review', 120:176) | .text"
+```
+
+Bad: re-querying structure with no new need
+
+```bash
+oq notes/ .tree
+oq notes/ .tree
+```
+
+Good: reuse what is already in context
+
+```bash
+oq notes/ .tree
+# Use known paths/titles from the prior map
+oq notes.org ".section('Inbox', 42:68) | .text"
+```
+
+## Context as Working Memory
+
+Treat previous `oq` output as an index already loaded in context.
+Avoid rerunning discovery commands unless files changed or coverage scope changed.
+Spend queries on narrowing and extraction, not on rebuilding the same map.
+
+## Examples by Task
+
+Find NEXT tasks this week:
+
+```bash
+oq tasks.org ".todos | filter(.state == 'NEXT') | map(.title)"
+oq --now 2026-02-17T08:00:00-08:00 --tz America/Los_Angeles tasks.org ".deadline('next_7d') | map(.title)"
+```
+
+Find owner of a release section:
+
+```bash
+oq notes.org ".section_contains('release')[0:1] | map(.start_line)"
+oq notes.org ".property('OWNER') | map(.value)"
+```
+
+Locate references to OAuth across files:
+
+```bash
+oq notes/ ".search('oauth') | .length"
+oq notes/ ".search('oauth')[0:10] | map(.path)"
 ```
 
 ## Error Recovery
