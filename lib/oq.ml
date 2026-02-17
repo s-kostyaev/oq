@@ -1954,7 +1954,7 @@ module Eval = struct
     List.find_exn doc.index.headings ~f:(fun heading ->
         Int.equal heading.id heading_id)
 
-  let parse_section_title_query raw_title =
+  let parse_section_title_query_prefix raw_title =
     let trimmed = String.strip raw_title in
     let length = String.length trimmed in
     let rec consume_stars index =
@@ -1977,6 +1977,29 @@ module Eval = struct
       else
         (Some star_count, String.drop_prefix trimmed title_start |> String.strip)
     else (None, trimmed)
+
+  let parse_section_title_query_span title =
+    let parse_int text =
+      try Some (Int.of_string text) with
+      | _ -> None
+    in
+    match String.rsplit2 title ~on:'(' with
+    | Some (before, after) when String.is_suffix after ~suffix:")" ->
+        let inside =
+          String.drop_suffix after 1 |> String.strip
+        in
+        let base_title = String.rstrip before in
+        (match String.chop_prefix inside ~prefix:"lines " with
+        | Some raw_span when not (String.is_empty base_title) -> (
+            match String.lsplit2 (String.strip raw_span) ~on:':' with
+            | Some (raw_start, raw_end) -> (
+                match (parse_int (String.strip raw_start), parse_int (String.strip raw_end)) with
+                | Some start_line, Some end_line ->
+                    (base_title, Some (start_line, end_line))
+                | _ -> (title, None))
+            | None -> (title, None))
+        | _ -> (title, None))
+    | _ -> (title, None)
 
   let heading_field_value runtime (heading : Org.heading) field =
     match field with
@@ -2353,17 +2376,42 @@ module Eval = struct
           | first :: _ -> selector_arg_string_exn name 1 first
           | [] -> failf ".section expects 1 or 2 arguments"
         in
-        let requested_level, title = parse_section_title_query raw_title in
-        let matches =
-          List.filter doc.index.headings ~f:(fun heading ->
-              String.equal heading.title title
-              &&
-              match requested_level with
-              | None -> true
-              | Some level -> Int.equal heading.level level)
+        let requested_level, title_with_suffix =
+          parse_section_title_query_prefix raw_title
         in
-        (match args with
-        | [ _ ] -> (
+        let title_without_span, embedded_span =
+          parse_section_title_query_span title_with_suffix
+        in
+        let level_matches_requested (heading : Org.heading) =
+          match requested_level with
+          | None -> true
+          | Some level -> Int.equal heading.level level
+        in
+        let has_title_match title =
+          List.exists doc.index.headings ~f:(fun (heading : Org.heading) ->
+              String.equal heading.title title
+              && level_matches_requested heading)
+        in
+        let title, embedded_span =
+          match embedded_span with
+          | Some span when has_title_match title_without_span ->
+              (title_without_span, Some span)
+          | Some _ -> (title_with_suffix, None)
+          | None -> (title_without_span, None)
+        in
+        let matches =
+          List.filter doc.index.headings ~f:(fun (heading : Org.heading) ->
+              String.equal heading.title title
+              && level_matches_requested heading)
+        in
+        let requested_span =
+          match args with
+          | [ _ ] -> embedded_span
+          | [ _; span_arg ] -> Some (selector_arg_span_exn name 2 span_arg)
+          | _ -> failf ".section expects 1 or 2 arguments"
+        in
+        (match requested_span with
+        | None -> (
             match matches with
             | [] -> failf "section not found for title %S" raw_title
             | [ heading ] -> section_of_heading heading
@@ -2374,10 +2422,7 @@ module Eval = struct
                 failf "%s"
                   (Diagnostic.ambiguous_section_error ~title
                      ~candidates:formatted))
-        | [ _; span_arg ] ->
-            let requested_start, requested_end =
-              selector_arg_span_exn name 2 span_arg
-            in
+        | Some (requested_start, requested_end) ->
             let disambiguated =
               List.find matches ~f:(fun heading ->
                   Int.equal heading.section_source.span.start_line requested_start
@@ -2388,7 +2433,7 @@ module Eval = struct
             | None ->
                 failf "section not found for title %S with span %d:%d" raw_title
                   requested_start requested_end)
-        | _ -> failf ".section expects 1 or 2 arguments")
+        )
     | "section_contains" ->
         let term =
           match args with

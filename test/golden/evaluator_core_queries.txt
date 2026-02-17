@@ -15,12 +15,30 @@ QUERY: .section('*** Follow-up') | .text
 *** Follow-up
 Child section under the duplicate heading.
 ---
+QUERY: .section('* Projects (lines 3:13)') | .text
+* Projects
+Intro text for project index.
+
+** Inbox
+First inbox content to extract in workflow tests.
+
+** Inbox
+Second inbox content that triggers ambiguity for .section("Inbox").
+
+*** Follow-up
+Child section under the duplicate heading.
+---
 QUERY: .section('Inbox', 6:8) | .text
 ** Inbox
 First inbox content to extract in workflow tests.
 
 ---
 QUERY: .section('** Inbox', 6:8) | .text
+** Inbox
+First inbox content to extract in workflow tests.
+
+---
+QUERY: .section('Inbox (lines 6:8)') | .text
 ** Inbox
 First inbox content to extract in workflow tests.
 

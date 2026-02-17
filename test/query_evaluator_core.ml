@@ -55,10 +55,14 @@ let () =
         run_ok doc ".tree('full')" );
       ( ".section('*** Follow-up') | .text",
         run_ok doc ".section('*** Follow-up') | .text" );
+      ( ".section('* Projects (lines 3:13)') | .text",
+        run_ok doc ".section('* Projects (lines 3:13)') | .text" );
       ( ".section('Inbox', 6:8) | .text",
         run_ok doc ".section('Inbox', 6:8) | .text" );
       ( ".section('** Inbox', 6:8) | .text",
         run_ok doc ".section('** Inbox', 6:8) | .text" );
+      ( ".section('Inbox (lines 6:8)') | .text",
+        run_ok doc ".section('Inbox (lines 6:8)') | .text" );
       ( ".section_contains('Inbox') | .length",
         run_ok doc ".section_contains('Inbox') | .length" );
       ( ".search('second inbox') | .length",
@@ -82,6 +86,8 @@ let () =
         run_error doc ".section('Inbox')" );
       ( ".section('Inbox', 1:2)",
         run_error doc ".section('Inbox', 1:2)" );
+      ( ".section('Inbox (lines 1:2)')",
+        run_error doc ".section('Inbox (lines 1:2)')" );
       ( ".section('* Follow-up')",
         run_error doc ".section('* Follow-up')" );
       ( ".headings[9]",
