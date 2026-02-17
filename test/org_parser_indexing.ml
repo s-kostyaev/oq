@@ -92,6 +92,22 @@ let () =
   | Ok _ -> failwith "expected parse failure for unsupported construct"
 
 let () =
+  match
+    Oq.Org.parse_string ~path:"export.org"
+      "#+begin_export html\n<div>ok</div>\n#+end_export\n"
+  with
+  | Error err ->
+      failwithf "expected export block parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc -> (
+      match doc.index.blocks with
+      | [ block ] ->
+          assert (Poly.equal block.kind Oq.Org.Export);
+          assert (String.equal (Option.value block.language ~default:"") "html")
+      | _ -> failwith "expected one export block")
+
+let () =
   let bytes = Bytes.create 1 in
   Bytes.set bytes 0 (Char.of_int_exn 0xFF);
   let invalid = Bytes.to_string bytes in

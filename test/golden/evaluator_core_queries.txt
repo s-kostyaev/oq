@@ -2,6 +2,9 @@
 QUERY: .headings | .length
 4
 ---
+QUERY: .tree('full') | .length
+4
+---
 QUERY: .section('Inbox', 6:8) | .text
 ** Inbox
 First inbox content to extract in workflow tests.

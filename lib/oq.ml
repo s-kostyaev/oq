@@ -172,6 +172,7 @@ module Org = struct
     | Src
     | Example
     | Quote
+    | Export
 
   type block = {
     kind : block_kind;
@@ -437,6 +438,13 @@ module Org = struct
           Some (Supported (Src, language))
       | "EXAMPLE" -> Some (Supported (Example, None))
       | "QUOTE" -> Some (Supported (Quote, None))
+      | "EXPORT" ->
+          let backend =
+            String.split (String.strip rest) ~on:' '
+            |> List.filter ~f:(fun token -> not (String.is_empty token))
+            |> List.hd
+          in
+          Some (Supported (Export, backend))
       | _ -> Some (Unsupported kind_token)
 
   let parse_block_end line =
@@ -456,6 +464,7 @@ module Org = struct
     | Src -> "SRC"
     | Example -> "EXAMPLE"
     | Quote -> "QUOTE"
+    | Export -> "EXPORT"
 
   let is_table_line line =
     let trimmed = String.lstrip line in
@@ -1926,6 +1935,7 @@ module Eval = struct
     | Org.Src -> "src"
     | Org.Example -> "example"
     | Org.Quote -> "quote"
+    | Org.Export -> "export"
 
   let link_kind_to_string = function
     | Org.Bracket -> "bracket"
@@ -2273,7 +2283,24 @@ module Eval = struct
   let apply_selector runtime ({ Ast.name; args } : Ast.selector) current =
     let doc = runtime.Runtime.doc in
     match name with
-    | "tree" | "headings" ->
+    | "tree" ->
+        let headings = doc.index.headings in
+        let selected =
+          match args with
+          | [] -> headings
+          | [ arg ] ->
+              let mode = selector_arg_string_exn name 1 arg in
+              if
+                List.mem [ "compact"; "preview"; "full" ] mode
+                  ~equal:String.equal
+              then headings
+              else
+                failf "invalid .tree mode %S (supported: compact|preview|full)"
+                  mode
+          | _ -> failf ".%s expects at most one argument" name
+        in
+        Value.List (List.map selected ~f:(fun heading -> Value.Heading heading))
+    | "headings" ->
         let headings = doc.index.headings in
         let selected =
           match args with

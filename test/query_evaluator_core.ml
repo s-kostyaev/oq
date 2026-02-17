@@ -49,6 +49,8 @@ let () =
     [
       ( ".headings | .length",
         run_ok doc ".headings | .length" );
+      ( ".tree('full') | .length",
+        run_ok doc ".tree('full') | .length" );
       ( ".section('Inbox', 6:8) | .text",
         run_ok doc ".section('Inbox', 6:8) | .text" );
       ( ".section_contains('Inbox') | .length",
