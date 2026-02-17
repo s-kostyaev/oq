@@ -54,14 +54,14 @@ Source PRD: `/Users/sergeykostyaev/ocaml/oq/docs/PRD-oq-v1.md` (Final v1.0, 2026
 4. [DONE] Definition of Done:
    fixture set covers MVP semantics from PRD and is used by automated tests.
 
-## 3. Org Parser and Indexing (M1, 5-7 days)
+## 3. Org Parser and Indexing (M1, 5-7 days) [DONE]
 
-1. Implement focused custom Org subset parser (PRD Option A).
-2. Build indexes for headings, section ranges, TODO state, planning metadata, properties, blocks, links, tables.
-3. Normalize parse-failure reason codes:
+1. [DONE] Implement focused custom Org subset parser (PRD Option A).
+2. [DONE] Build indexes for headings, section ranges, TODO state, planning metadata, properties, blocks, links, tables.
+3. [DONE] Normalize parse-failure reason codes:
    `syntax_error`, `unsupported_construct`, `invalid_utf8`, `internal_parser_error`.
-4. Ensure all indexed entities keep precise spans and source references needed by agents for follow-up queries.
-5. Definition of Done:
+4. [DONE] Ensure all indexed entities keep precise spans and source references needed by agents for follow-up queries.
+5. [DONE] Definition of Done:
    fixtures parse reliably with line-accurate spans and stable reason mapping.
 
 ## 4. Query Language Parser (M2, 4-5 days)

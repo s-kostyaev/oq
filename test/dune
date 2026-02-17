@@ -38,3 +38,12 @@
   (glob_files_rec fixtures/*.org))
  (preprocess
   (pps ppx_jane)))
+
+(test
+ (name org_parser_indexing)
+ (modules org_parser_indexing)
+ (libraries oq)
+ (deps
+  (glob_files_rec fixtures/*.org))
+ (preprocess
+  (pps ppx_jane)))
