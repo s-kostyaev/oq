@@ -46,6 +46,8 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
 6. Drawers and properties
 - Drawer open/close parsing using `:NAME:` and `:END:`.
 - Property extraction (`:KEY: VALUE`) from `:PROPERTIES:`.
+- Drawer names must be bare (no surrounding/interior whitespace), so fixed-width
+  text lines like `: code:` are not treated as drawers.
 - References: `lib/oq.ml:382`, `lib/oq.ml:396`, `lib/oq.ml:763`.
 
 7. Blocks `#+BEGIN_...` / `#+END_...`

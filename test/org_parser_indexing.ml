@@ -357,6 +357,19 @@ let () =
       assert (List.is_empty doc.index.planning)
 
 let () =
+  match
+    Oq.Org.parse_string ~path:"fixed-width.org"
+      "* Note\n: code:\n: another line\n"
+  with
+  | Error err ->
+      failwithf "expected fixed-width parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.headings = 1);
+      assert (List.is_empty doc.index.drawers)
+
+let () =
   let bytes = Bytes.create 1 in
   Bytes.set bytes 0 (Char.of_int_exn 0xFF);
   let invalid = Bytes.to_string bytes in

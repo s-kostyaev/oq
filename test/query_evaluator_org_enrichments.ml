@@ -197,6 +197,18 @@ let () =
   assert (String.equal (run_ok inline_doc ".scheduled | .length") "0")
 
 let () =
+  let inline_doc =
+    parse_inline "fixed-width.org"
+      {|
+* Note
+: code:
+: another line
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".headings | .length") "1");
+  assert (String.equal (run_ok inline_doc ".properties | .length") "0")
+
+let () =
   let todo = parse_fixture "fixtures/corpus/todo_workflows.org" in
   let now = "2026-02-17T10:30:00-08:00" in
   let tz = "America/Los_Angeles" in

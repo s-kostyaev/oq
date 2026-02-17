@@ -448,8 +448,11 @@ module Org = struct
     else if not (Char.equal trimmed.[0] ':' && Char.equal trimmed.[len - 1] ':')
     then None
     else
-      let name = String.sub trimmed ~pos:1 ~len:(len - 2) |> String.strip in
+      let raw_name = String.sub trimmed ~pos:1 ~len:(len - 2) in
+      let name = String.strip raw_name in
       if String.is_empty name then None
+      else if not (String.equal raw_name name) then None
+      else if String.exists name ~f:Char.is_whitespace then None
       else if String.Caseless.equal name "END" then None
       else Some name
 
