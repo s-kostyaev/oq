@@ -1303,11 +1303,13 @@ module Org = struct
                     add_links ~line ~line_no ~heading_id:drawer_state.heading_id
               | None ->
                   if is_table_line line then
+                    let row = parse_table_row line in
                     (match !open_table_state with
                     | Some table_state ->
-                        table_state.rows_rev <-
-                          parse_table_row line :: table_state.rows_rev;
-                        add_links ~line ~line_no ~heading_id:table_state.heading_id
+                        table_state.rows_rev <- row :: table_state.rows_rev;
+                        List.iter row ~f:(fun cell ->
+                            add_links ~line:cell ~line_no
+                              ~heading_id:table_state.heading_id)
                     | None ->
                         let heading_id = !current_heading_id in
                         open_table_state :=
@@ -1315,9 +1317,10 @@ module Org = struct
                             {
                               start_line = line_no;
                               heading_id;
-                              rows_rev = [ parse_table_row line ];
+                              rows_rev = [ row ];
                             };
-                        add_links ~line ~line_no ~heading_id)
+                        List.iter row ~f:(fun cell ->
+                            add_links ~line:cell ~line_no ~heading_id))
                   else (
                     finalize_table (line_no - 1);
                     if

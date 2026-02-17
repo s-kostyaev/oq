@@ -948,6 +948,19 @@ let () =
 
 let () =
   let inline_doc =
+    parse_inline "links-in-compact-table-cell.org"
+      {|
+* Note
+|https://example.com|
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".links | .length") "1");
+  assert_contains
+    (run_ok inline_doc ".links | map(.target)")
+    "https://example.com"
+
+let () =
+  let inline_doc =
     parse_inline "links-custom-abbrev-indented-keyword.org"
       {|
 * Note

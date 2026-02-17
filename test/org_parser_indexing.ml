@@ -1198,6 +1198,20 @@ let () =
 
 let () =
   match
+    Oq.Org.parse_string ~path:"links-in-compact-table-cell.org"
+      "* Note\n|https://example.com|\n"
+  with
+  | Error err ->
+      failwithf "expected links in compact table cell parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.tables = 1);
+      assert (List.length doc.index.links = 1);
+      assert (String.equal (List.hd_exn doc.index.links).target "https://example.com")
+
+let () =
+  match
     Oq.Org.parse_string ~path:"links-custom-abbrev-indented-keyword.org"
       "* Note\n  #+LINK: gh https://github.com/%s\ngh:ocaml/dune\n"
   with
