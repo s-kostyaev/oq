@@ -49,10 +49,10 @@ let () =
     [
       ( ".headings | .length",
         run_ok doc ".headings | .length" );
-      ( ".tree('full') | .length",
-        run_ok doc ".tree('full') | .length" );
-      ( ".tree('full')",
-        run_ok doc ".tree('full')" );
+      ( ".tree | .length",
+        run_ok doc ".tree | .length" );
+      ( ".tree",
+        run_ok doc ".tree" );
       ( ".section('*** Follow-up') | .text",
         run_ok doc ".section('*** Follow-up') | .text" );
       ( ".section('* Projects (lines 3:13)') | .text",

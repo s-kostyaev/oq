@@ -2,10 +2,10 @@
 QUERY: .headings | .length
 4
 ---
-QUERY: .tree('full') | .length
+QUERY: .tree | .length
 4
 ---
-QUERY: .tree('full')
+QUERY: .tree
 * Projects (lines 3:13)
 ** Inbox (lines 6:8)
 ** Inbox (lines 9:13)

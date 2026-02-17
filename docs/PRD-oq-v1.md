@@ -176,7 +176,6 @@ Query examples:
 
 ```bash
 oq notes.org .tree
-oq notes.org ".tree('full')"
 oq notes.org ".section('Implementation') | .text"
 oq notes.org ".section('Implementation', 120:168) | .text"
 oq notes.org ".section_contains('Implement')"
@@ -188,7 +187,7 @@ oq notes.org ".headings | .length"
 oq notes.org ".search('oauth')"
 oq notes.org ".search('/oauth|oidc/i')"
 oq tasks.org ".deadline('this_week')"
-oq notes/ ".tree('full')"
+oq notes/ .tree
 oq notes/ ".search('deadline')"
 ```
 
@@ -236,7 +235,7 @@ Parser must build an indexed document model with:
 MVP should stay mostly compatible with `mq` mental model:
 
 1. Selectors:
-   `.tree`, `.tree("compact"|"preview"|"full")`, `.headings`, `.headings(N)`, `.section("title")`, `.section("title", start:end)`, `.section_contains("term")`, `.sections`, `.code`, `.code("lang")`, `.links`, `.tables`, `.search("term")`, `.text`, `.length`.
+   `.tree`, `.headings`, `.headings(N)`, `.section("title")`, `.section("title", start:end)`, `.section_contains("term")`, `.sections`, `.code`, `.code("lang")`, `.links`, `.tables`, `.search("term")`, `.text`, `.length`.
 2. Org-specific selectors:
    `.todos`, `.done`, `.properties`, `.property("KEY")`, `.scheduled`, `.scheduled("range")`, `.deadline`, `.deadline("range")`, `.closed`, `.closed("range")`, `.tags`.
 3. Pipes:
@@ -321,8 +320,8 @@ MVP should stay mostly compatible with `mq` mental model:
 
 ### 7.4 Directory Mode
 
-1. `.tree` variants on directories:
-   file list + line counts + top headings (+ previews in full mode).
+1. `.tree` on directories:
+   file list + line counts + top headings.
 2. `.search("term")` across all parsed `.org` files.
 3. `.search(...)` regex mode:
    if argument is slash-delimited pattern-string (for example `"/oauth|oidc/i"`), treat as regex.

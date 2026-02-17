@@ -106,6 +106,7 @@ let () =
 let () = assert_error_contains ".headings | [0]" "bare indexing stage is invalid"
 let () = assert_error_contains ".headings | length" "use `.length`"
 let () = assert_error_contains ".unknown_selector" "unknown selector"
+let () = assert_error_contains ".tree('full')" ".tree does not take arguments"
 let () = assert_error_contains ".headings('one')" "expected integer"
 let () = assert_error_contains ".search('/foo/x')" "unsupported regex flags"
 let () = assert_error_contains ".search('/foo')" "malformed regex pattern-string"

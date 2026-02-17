@@ -1477,16 +1477,7 @@ module Query = struct
   let validate_selector_args state selector args =
     match selector with
     | "tree" ->
-        ensure_zero_or_one_arg state selector args;
-        List.iteri args ~f:(fun index arg ->
-            let mode = expect_string_literal_arg state selector (index + 1) arg in
-            if
-              not
-                (List.mem [ "compact"; "preview"; "full" ] mode
-                   ~equal:String.equal)
-            then
-              failf state
-                "invalid .tree mode %S (supported: compact|preview|full)" mode)
+        ensure_no_args state selector args
     | "headings" ->
         ensure_zero_or_one_arg state selector args;
         List.iteri args ~f:(fun index arg ->
@@ -2338,16 +2329,7 @@ module Eval = struct
         let selected =
           match args with
           | [] -> headings
-          | [ arg ] ->
-              let mode = selector_arg_string_exn name 1 arg in
-              if
-                List.mem [ "compact"; "preview"; "full" ] mode
-                  ~equal:String.equal
-              then headings
-              else
-                failf "invalid .tree mode %S (supported: compact|preview|full)"
-                  mode
-          | _ -> failf ".%s expects at most one argument" name
+          | _ -> failf ".%s does not take arguments" name
         in
         Value.List
           (List.map selected ~f:(fun heading -> Value.Tree_heading heading))

@@ -64,7 +64,7 @@ let man =
     `Pre "  QUERY := STAGE (\"|\" STAGE)*";
     `P "Stage kinds:";
     `Pre
-      "  SELECTOR := .tree([mode]) | .headings([max_level]) | .sections\n\
+      "  SELECTOR := .tree | .headings([max_level]) | .sections\n\
       \            | .section(title[, start:end]) | .section_contains(text)\n\
       \            | .search(text_or_/pattern/flags) | .text | .length\n\
       \            | .todos | .done | .properties | .property(key)\n\
