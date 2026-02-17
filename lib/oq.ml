@@ -3495,17 +3495,7 @@ module Cli = struct
     | Ok stat -> (
         match stat.st_kind with
         | Caml_unix.S_DIR -> run_directory_mode request
-        | Caml_unix.S_REG ->
-            if has_org_extension request.input_path then
-              run_file_mode request
-            else
-              make_outcome Exit_code.Query_or_usage_error
-                ~stderr_lines:
-                  [
-                    Diagnostic.error
-                      (sprintf "unsupported input file %S (expected .org)"
-                         request.input_path);
-                  ]
+        | Caml_unix.S_REG -> run_file_mode request
         | Caml_unix.S_LNK ->
             make_outcome Exit_code.Query_or_usage_error
               ~stderr_lines:
