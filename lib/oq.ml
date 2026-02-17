@@ -390,10 +390,13 @@ module Org = struct
       | Some (left, right) ->
           if String.length left < 3 then None
           else
-            let key = String.uppercase (String.drop_prefix left 2 |> String.strip) in
-            if String.is_empty key then None
-            else if String.exists key ~f:Char.is_whitespace then None
-            else Some (key, String.strip right)
+            let raw_key = String.drop_prefix left 2 in
+            if not (String.equal raw_key (String.strip raw_key)) then None
+            else
+              let key = String.uppercase raw_key in
+              if String.is_empty key then None
+              else if String.exists key ~f:Char.is_whitespace then None
+              else Some (key, String.strip right)
 
   let parse_drawer_open line =
     let trimmed = String.strip line in
@@ -457,14 +460,19 @@ module Org = struct
         let kind, trailing = split_first_whitespace after_prefix in
         (String.uppercase kind, trailing)
       in
+      let parse_optional_primary_token text =
+        match whitespace_tokens text |> List.hd with
+        | Some token when not (String.is_prefix token ~prefix:":") -> Some token
+        | _ -> None
+      in
       match kind_token with
       | "SRC" ->
-          let language = whitespace_tokens rest |> List.hd in
+          let language = parse_optional_primary_token rest in
           Some (Supported (Src, language))
       | "EXAMPLE" -> Some (Supported (Example, None))
       | "QUOTE" -> Some (Supported (Quote, None))
       | "EXPORT" ->
-          let backend = whitespace_tokens rest |> List.hd in
+          let backend = parse_optional_primary_token rest in
           Some (Supported (Export, backend))
       | _ -> Some (Opaque kind_token)
 

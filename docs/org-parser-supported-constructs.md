@@ -48,6 +48,8 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
   (for example `#+BEGIN_SRC\tocaml`).
 - `SRC`/`EXPORT` header arguments after language/backend are tolerated
   (for example `#+BEGIN_SRC emacs-lisp :results output`).
+- `SRC` blocks with header arguments and no language are handled as language-less
+  (for example `#+BEGIN_SRC :results output`).
 - Other valid block types (for example `CENTER`, `VERSE`, `COMMENT`) are parsed as opaque regions:
   - they do not fail parsing,
   - they are not added to `index.blocks`.
