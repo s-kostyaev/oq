@@ -259,6 +259,19 @@ word	https://example.com/docs
 
 let () =
   let inline_doc =
+    parse_inline "links-uppercase-scheme.org"
+      {|
+* Note
+HTTPS://example.com/docs
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".links | .length") "1");
+  assert_contains
+    (run_ok inline_doc ".links | map(.target)")
+    "HTTPS://example.com/docs"
+
+let () =
+  let inline_doc =
     parse_inline "links-bracket.org"
       {|
 * Links

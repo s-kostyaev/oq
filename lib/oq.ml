@@ -623,8 +623,10 @@ module Org = struct
            if looks_like_bracket_fragment then None
            else
              let normalized = trim_plain_link_token token in
-             if String.is_prefix normalized ~prefix:"http://"
-                || String.is_prefix normalized ~prefix:"https://"
+             let lower = String.lowercase normalized in
+             if
+               String.is_prefix lower ~prefix:"http://"
+               || String.is_prefix lower ~prefix:"https://"
              then Some normalized
              else None)
 

@@ -78,6 +78,7 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
 8. Links in text
 - Bracket links: `[[target][description]]` and `[[target]]`.
 - Plain links: tokens starting with `http://` or `https://`.
+- Plain `http/https` scheme matching is case-insensitive (`HTTPS://...` is recognized).
 - Plain link tokenization is whitespace-aware (spaces and tabs).
 - Bracket links are not duplicated as plain links.
 - Plain links preserve balanced trailing parentheses in URLs.
