@@ -1048,6 +1048,17 @@ let () =
 
 let () =
   match
+    Oq.Org.parse_string ~path:"links-custom-abbrev-indented-keyword.org"
+      "* Note\n  #+LINK: gh https://github.com/%s\ngh:ocaml/dune\n"
+  with
+  | Error err ->
+      failwithf "expected indented LINK keyword to stay inactive, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc -> assert (List.length doc.index.links = 0)
+
+let () =
+  match
     Oq.Org.parse_string ~path:"links-custom-abbrev-in-indented-drawer.org"
       "* Note\n  :MYDRAWER:\n  #+LINK: gh https://github.com/%s\n  :END:\ngh:ocaml/dune\n"
   with

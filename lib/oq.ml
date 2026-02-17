@@ -420,9 +420,11 @@ module Org = struct
     (title, todo_keyword, priority, tags)
 
   let parse_keyword_line line =
-    let trimmed = String.strip line in
-    if not (String.is_prefix trimmed ~prefix:"#+") then None
+    if not (String.equal line (String.lstrip line)) then None
     else
+      let trimmed = String.strip line in
+      if not (String.is_prefix trimmed ~prefix:"#+") then None
+      else
       match String.lsplit2 trimmed ~on:':' with
       | None -> None
       | Some (left, right) ->
@@ -447,6 +449,10 @@ module Org = struct
     let trimmed = String.lstrip line in
     String.is_prefix trimmed ~prefix:"#"
     && not (String.is_prefix trimmed ~prefix:"#+")
+
+  let is_indented_keyword_like_line line =
+    not (String.equal line (String.lstrip line))
+    && String.is_prefix (String.lstrip line) ~prefix:"#+"
 
   let parse_drawer_name line =
     let trimmed = String.lstrip line |> String.rstrip in
@@ -1314,7 +1320,8 @@ module Org = struct
                                 Hash_set.add custom_link_types abbrev
                             | None -> ())
                       | None ->
-                        if is_comment_line line then ()
+                        if is_comment_line line || is_indented_keyword_like_line line
+                        then ()
                         else
                           (match parse_block_begin line with
                           | Some (Supported (kind, language))

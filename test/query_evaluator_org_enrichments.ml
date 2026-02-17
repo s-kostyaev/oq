@@ -783,6 +783,17 @@ gh:ocaml/dune
 
 let () =
   let inline_doc =
+    parse_inline "links-custom-abbrev-indented-keyword.org"
+      {|
+* Note
+  #+LINK: gh https://github.com/%s
+gh:ocaml/dune
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".links | .length") "0")
+
+let () =
+  let inline_doc =
     parse_inline "links-custom-abbrev-in-indented-drawer.org"
       {|
 * Note
