@@ -104,7 +104,7 @@ let () =
       assert (extract_counter stdout "skipped_hidden" = 1);
       assert (extract_counter stdout "skipped_symlink" = 1);
       assert_contains stdout "good.org:";
-      assert_contains stdout "Alpha (lines 1:2)";
+      assert_contains stdout "* Alpha (lines 1:2)";
       assert
         (List.exists outcome.stderr_lines ~f:(fun line ->
              String.is_substring line

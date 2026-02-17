@@ -2704,8 +2704,10 @@ module Eval = struct
     | Value.Bool value -> Bool.to_string value
     | Value.Null -> "null"
     | Value.Heading heading ->
-        sprintf "%s (lines %d:%d)" heading.title
-          heading.section_source.span.start_line heading.section_source.span.end_line
+        sprintf "%s %s (lines %d:%d)"
+          (String.make heading.level '*')
+          heading.title heading.section_source.span.start_line
+          heading.section_source.span.end_line
     | Value.Tree_heading heading ->
         sprintf "%s %s (lines %d:%d)"
           (String.make heading.level '*')
