@@ -49,6 +49,7 @@ oq --strict notes/ ".headings | .length"
 - Product requirements: `docs/PRD-oq-v1.md`
 - Agent contract: `docs/agent-contract.md`
 - Agent query cookbook: `docs/agent-playbook.md`
+- Agent skill (low-context querying): `skills/oq-org-query/SKILL.md`
 - CI policy: `docs/ci-gates.md`
 - Performance notes: `docs/performance-notes.md`
 - GitHub workflow guidance: `docs/gh-operations.md`

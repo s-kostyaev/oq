@@ -8,7 +8,7 @@ let run strict now tz input_path query =
   let outcome = Oq.Cli.execute request in
   Option.iter outcome.stdout ~f:Stdio.print_endline;
   List.iter outcome.stderr_lines ~f:(fun line -> Stdio.eprintf "%s\n" line);
-  Stdlib.exit (Oq.Exit_code.to_int outcome.exit_code)
+  Oq.Exit_code.to_int outcome.exit_code
 
 let strict_arg =
   Arg.(
@@ -92,11 +92,29 @@ let man =
 
 let cmd =
   let doc = "agent-first org query CLI" in
-  let info = Cmd.info "oq" ~doc ~man in
+  let exits =
+    [
+      Cmd.Exit.info 0 ~doc:"on success.";
+      Cmd.Exit.info 1 ~doc:"on query or usage errors.";
+      Cmd.Exit.info 2 ~doc:"on I/O, path, or permission errors.";
+      Cmd.Exit.info 3 ~doc:"on parse coverage failures.";
+    ]
+  in
+  let info = Cmd.info "oq" ~doc ~man ~exits in
   let term =
     Term.(
       const run $ strict_arg $ now_arg $ tz_arg $ input_path_arg $ query_arg)
   in
   Cmd.v info term
 
-let () = Stdlib.exit (Cmd.eval cmd)
+let () =
+  let cli_usage_error = Oq.Exit_code.to_int Oq.Exit_code.Query_or_usage_error in
+  let code = Cmd.eval' ~term_err:cli_usage_error cmd in
+  let normalized_code =
+    if
+      Int.equal code Cmd.Exit.cli_error || Int.equal code Cmd.Exit.some_error
+      || Int.equal code Cmd.Exit.internal_error
+    then cli_usage_error
+    else code
+  in
+  Stdlib.exit normalized_code
