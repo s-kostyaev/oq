@@ -1,0 +1,40 @@
+(test
+ (name smoke)
+ (modules smoke)
+ (libraries oq)
+ (preprocess
+  (pps ppx_jane)))
+
+(test
+ (name contract_smoke)
+ (modules contract_smoke)
+ (libraries oq)
+ (preprocess
+  (pps ppx_jane)))
+
+(test
+ (name fixture_corpus)
+ (modules fixture_corpus)
+ (libraries oq)
+ (deps
+  (glob_files_rec fixtures/*.org))
+ (preprocess
+  (pps ppx_jane)))
+
+(test
+ (name diagnostic_golden)
+ (modules diagnostic_golden)
+ (libraries oq)
+ (deps
+  (glob_files golden/*.txt))
+ (preprocess
+  (pps ppx_jane)))
+
+(test
+ (name agent_workflow_scenarios)
+ (modules agent_workflow_scenarios)
+ (libraries oq)
+ (deps
+  (glob_files_rec fixtures/*.org))
+ (preprocess
+  (pps ppx_jane)))

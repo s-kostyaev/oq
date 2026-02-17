@@ -1,0 +1,17 @@
+#+TITLE: Blocks Links and Tables Fixture
+
+* Snippets
+#+BEGIN_SRC ocaml
+let greeting = "hello"
+#+END_SRC
+
+#+BEGIN_QUOTE
+Quoted context for parser coverage.
+#+END_QUOTE
+
+Reference link: [[https://example.com/docs][Example Docs]]
+
+| Name  | State |
+|-------+-------|
+| Build | OK    |
+| Test  | TODO  |

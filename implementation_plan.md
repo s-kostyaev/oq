@@ -34,24 +34,24 @@ Source PRD: `/Users/sergeykostyaev/ocaml/oq/docs/PRD-oq-v1.md` (Final v1.0, 2026
 
 ## 1. Project Bootstrap + Agent Contract (M0, 1-2 days)
 
-1. Initialize OCaml project skeleton (`dune`, `opam`, `bin/oq.ml`, `lib/*`, `test/*`).
-2. Add core dependencies: `base`, `core`, `stdio`, `ppx_jane`, `cmdliner`, `re2`.
-3. Lock CLI contracts with smoke tests:
+1. [DONE] Initialize OCaml project skeleton (`dune`, `opam`, `bin/oq.ml`, `lib/*`, `test/*`).
+2. [DONE] Add core dependencies: `base`, `core`, `stdio`, `ppx_jane`, `cmdliner`, `re2`.
+3. [DONE] Lock CLI contracts with smoke tests:
    exit codes (`0`, `1`, `2`, `3`), canonical `Error:`/`Warning:` templates, deterministic ordering rules.
-4. Add "agent contract" doc:
+4. [DONE] Add "agent contract" doc:
    minimal stable command patterns, expected outputs, and retry behavior for common failures.
-5. Definition of Done:
+5. [DONE] Definition of Done:
    `oq` builds, runs, and basic error classes map to required exit codes.
 
 ## 2. Fixtures and Spec Tests for Agent Workflows (M0, 2-3 days)
 
-1. Build `.org` fixture corpus for all locked decisions:
+1. [DONE] Build `.org` fixture corpus for all locked decisions:
    duplicate headings, TODO workflows, planning lines, drawers, blocks, links, tables.
-2. Add golden tests for exact diagnostics and agent stability:
+2. [DONE] Add golden tests for exact diagnostics and agent stability:
    ambiguity template and parse warning template.
-3. Add end-to-end fixture scenarios that mirror agent tasks:
+3. [DONE] Add end-to-end fixture scenarios that mirror agent tasks:
    "find section -> narrow -> extract text", "directory search -> filter -> select heading", "recover from ambiguity error".
-4. Definition of Done:
+4. [DONE] Definition of Done:
    fixture set covers MVP semantics from PRD and is used by automated tests.
 
 ## 3. Org Parser and Indexing (M1, 5-7 days)

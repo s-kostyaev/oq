@@ -1,0 +1,4 @@
+Error: ambiguous section title "Inbox" (2 matches)
+  - Inbox (lines 6:8)
+  - Inbox (lines 9:13)
+Hint: use .section("Inbox", 6:8)

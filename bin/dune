@@ -1,0 +1,4 @@
+(executable
+ (public_name oq)
+ (name oq)
+ (libraries oq core cmdliner))

@@ -1,0 +1,13 @@
+#+TITLE: Duplicate Headings Fixture
+
+* Projects
+Intro text for project index.
+
+** Inbox
+First inbox content to extract in workflow tests.
+
+** Inbox
+Second inbox content that triggers ambiguity for .section("Inbox").
+
+*** Follow-up
+Child section under the duplicate heading.

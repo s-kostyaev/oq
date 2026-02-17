@@ -1,0 +1,15 @@
+#+TITLE: Properties Fixture
+
+* Project Alpha
+:PROPERTIES:
+:OWNER: Sergey
+:EFFORT: 4h
+:CUSTOM_ID: project-alpha
+:END:
+
+Some body text in the section.
+
+* Project Beta
+:PROPERTIES:
+:OWNER: Team
+:END:

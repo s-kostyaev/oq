@@ -1,0 +1,14 @@
+#+TITLE: TODO Workflow Fixture
+#+TODO: TODO NEXT WAIT | DONE CANCELED
+
+* TODO Prepare release :work:release:
+SCHEDULED: <2026-02-20 Fri>
+DEADLINE: <2026-02-21 Sat>
+- [ ] Tag v1.0.0
+- [ ] Publish notes
+
+* NEXT Confirm changelog :work:
+SCHEDULED: <2026-02-19 Thu>
+
+* DONE Submit weekly report :ops:
+CLOSED: [2026-02-16 Mon 18:42]
