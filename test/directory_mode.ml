@@ -587,6 +587,20 @@ let () =
 let () =
   with_temp_dir (fun root ->
       ignore
+        (write_file root "links-more-schemes.org"
+           "* Note\nirc:#emacs\ngnus:group\ndocview:/tmp/a.pdf::5\nrmail:Inbox\nbbdb:John_Doe\n");
+      let outcome = run_directory ~query:(Some ".links | .length") root in
+      assert_exit outcome Oq.Exit_code.Success;
+      let stdout = require_stdout outcome in
+      assert (extract_counter stdout "candidate_org" = 1);
+      assert (extract_counter stdout "parsed_ok" = 1);
+      assert (extract_counter stdout "parse_failed" = 0);
+      assert_contains stdout "links-more-schemes.org:";
+      assert_contains stdout "  5")
+
+let () =
+  with_temp_dir (fun root ->
+      ignore
         (write_file root "links-bracket.org"
            "* Links\n[[https://example.com/docs][Example Docs]]\n");
       let outcome = run_directory ~query:(Some ".links | .length") root in

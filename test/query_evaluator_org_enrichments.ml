@@ -441,6 +441,27 @@ file+emacs:/tmp/report.txt
 
 let () =
   let inline_doc =
+    parse_inline "links-more-schemes.org"
+      {|
+* Note
+irc:#emacs
+gnus:group
+docview:/tmp/a.pdf::5
+rmail:Inbox
+bbdb:John_Doe
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".links | .length") "5");
+  assert_contains (run_ok inline_doc ".links | map(.target)") "irc:#emacs";
+  assert_contains (run_ok inline_doc ".links | map(.target)") "gnus:group";
+  assert_contains
+    (run_ok inline_doc ".links | map(.target)")
+    "docview:/tmp/a.pdf::5";
+  assert_contains (run_ok inline_doc ".links | map(.target)") "rmail:Inbox";
+  assert_contains (run_ok inline_doc ".links | map(.target)") "bbdb:John_Doe"
+
+let () =
+  let inline_doc =
     parse_inline "links-bracket.org"
       {|
 * Links

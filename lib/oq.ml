@@ -669,6 +669,11 @@ module Org = struct
       || has_prefix "doi:"
       || has_prefix "attachment:"
       || has_prefix "coderef:"
+      || has_prefix "irc:"
+      || has_prefix "gnus:"
+      || has_prefix "rmail:"
+      || has_prefix "docview:"
+      || has_prefix "bbdb:"
     in
     whitespace_tokens line
     |> List.filter_map ~f:(fun token ->

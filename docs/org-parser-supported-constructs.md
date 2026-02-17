@@ -92,6 +92,7 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
 - Plain `attachment:...` links are also recognized.
 - Plain `coderef:...` links are also recognized.
 - Plain `file+sys:...` and `file+emacs:...` links are also recognized.
+- Plain `irc:...`, `gnus:...`, `rmail:...`, `docview:...`, and `bbdb:...` links are also recognized.
 - Plain link tokenization is whitespace-aware (spaces and tabs).
 - Bracket links are not duplicated as plain links.
 - Plain links preserve balanced trailing parentheses in URLs.

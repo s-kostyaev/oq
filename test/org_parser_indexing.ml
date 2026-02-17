@@ -692,6 +692,33 @@ let () =
 
 let () =
   match
+    Oq.Org.parse_string ~path:"links-more-schemes.org"
+      "* Note\nirc:#emacs\ngnus:group\ndocview:/tmp/a.pdf::5\nrmail:Inbox\nbbdb:John_Doe\n"
+  with
+  | Error err ->
+      failwithf "expected additional plain schemes parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.links = 5);
+      assert
+        (List.exists doc.index.links ~f:(fun link ->
+             String.equal link.target "irc:#emacs"));
+      assert
+        (List.exists doc.index.links ~f:(fun link ->
+             String.equal link.target "gnus:group"));
+      assert
+        (List.exists doc.index.links ~f:(fun link ->
+             String.equal link.target "docview:/tmp/a.pdf::5"));
+      assert
+        (List.exists doc.index.links ~f:(fun link ->
+             String.equal link.target "rmail:Inbox"));
+      assert
+        (List.exists doc.index.links ~f:(fun link ->
+             String.equal link.target "bbdb:John_Doe"))
+
+let () =
+  match
     Oq.Org.parse_string ~path:"links-bracket.org"
       "* Links\n[[https://example.com/docs][Example Docs]]\n"
   with
