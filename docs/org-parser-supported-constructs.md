@@ -145,6 +145,8 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
 9. Tables
 - Table regions start with lines whose trimmed form begins with `|`.
 - Each table row is split into cells by `|`.
+- Link extraction runs on table-row text, so plain/bracket links inside cells
+  are indexed.
 - References: `lib/oq.ml:469`, `lib/oq.ml:473`, `lib/oq.ml:777`.
 
 ## Errors and Limitations
