@@ -94,6 +94,21 @@ let () =
 
 let () =
   match
+    Oq.Org.parse_string ~path:"seq-typ-todo.org"
+      "#+SEQ_TODO: NEXT WAIT | DONE\n#+TYP_TODO: IDEA BLOCKED | ARCHIVED\n* NEXT seq item\n* IDEA type item\n* ARCHIVED archived item\n"
+  with
+  | Error err ->
+      failwithf "expected SEQ_TODO/TYP_TODO parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert
+        (Poly.equal doc.todo_config.open_states [ "NEXT"; "WAIT"; "IDEA"; "BLOCKED" ]);
+      assert (Poly.equal doc.todo_config.done_states [ "DONE"; "ARCHIVED" ]);
+      assert (List.length doc.index.todos = 3)
+
+let () =
+  match
     Oq.Org.parse_string ~path:"todo-multiple-lines.org"
       "#+TODO: TODO(t) NEXT(n) | DONE(d)\n#+TODO: WAIT(w) HOLD(h) | CANCELED(c)\n* TODO A\n* WAIT B\n* CANCELED C\n"
   with

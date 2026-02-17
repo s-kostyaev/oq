@@ -122,6 +122,11 @@ module Org = struct
         done_states = append_unique left.done_states right.done_states;
       }
 
+    let is_todo_keyword_key key =
+      String.equal key "TODO"
+      || String.equal key "SEQ_TODO"
+      || String.equal key "TYP_TODO"
+
     let normalize_state_token raw_token =
       let token = String.strip raw_token in
       if String.is_empty token then None
@@ -877,7 +882,7 @@ module Org = struct
                     match parse_keyword_line line with
                     | Some (key, value) ->
                         keywords_rev := (key, value) :: !keywords_rev;
-                        if String.equal key "TODO" then
+                        if Todo_config.is_todo_keyword_key key then
                           (match Todo_config.parse_from_keyword_value value with
                           | Some parsed ->
                               if !has_explicit_todo_config then

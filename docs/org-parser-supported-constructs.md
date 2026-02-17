@@ -23,6 +23,7 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
 3. Keyword lines `#+KEY: VALUE`
 - Generic file-level keyword parsing.
 - `#+TODO: ... | ...` parsing for open/done state groups.
+- `#+SEQ_TODO:` and `#+TYP_TODO:` are treated as TODO workflow aliases.
 - TODO keywords with fast-key/logging suffixes are normalized
   (for example `TODO(t)`, `WAIT(w@/!)`, `DONE(d!)`).
 - Multiple `#+TODO:` lines are merged into one effective workflow config.
