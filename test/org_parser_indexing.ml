@@ -66,6 +66,19 @@ let () =
       | _ -> failwith "expected one heading with tags")
 
 let () =
+  match Oq.Org.parse_string ~path:"tags-only.org" "* :work:docs:\n" with
+  | Error err ->
+      failwithf "expected tags-only heading parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc -> (
+      match doc.index.headings with
+      | [ heading ] ->
+          assert (String.is_empty heading.title);
+          assert (Poly.equal heading.tags [ "work"; "docs" ])
+      | _ -> failwith "expected one tags-only heading")
+
+let () =
   match
     Oq.Org.parse_string ~path:"todo-fast-keys.org"
       "#+TODO: TODO(t) NEXT(n) WAIT(w@/!) | DONE(d!) CANCELED(c@)\n* TODO task one\n* DONE task two\n"

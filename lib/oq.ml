@@ -359,6 +359,12 @@ module Org = struct
 
   let split_title_and_tags raw_heading_body =
     let trimmed = String.rstrip raw_heading_body in
+    let tags_of token =
+      String.split token ~on:':'
+      |> List.filter ~f:(fun tag -> not (String.is_empty tag))
+    in
+    if is_tag_token trimmed then ("", tags_of trimmed)
+    else
     let len = String.length trimmed in
     let rec find_separator index =
       if index < 0 then None
@@ -372,10 +378,7 @@ module Org = struct
           String.drop_prefix trimmed (separator_index + 1) |> String.strip
         in
         if is_tag_token suffix then
-          let tags =
-            String.split suffix ~on:':'
-            |> List.filter ~f:(fun tag -> not (String.is_empty tag))
-          in
+          let tags = tags_of suffix in
           (String.prefix trimmed separator_index |> String.rstrip, tags)
         else (trimmed, [])
 
