@@ -456,7 +456,7 @@ module Org = struct
       else if String.Caseless.equal name "END" then None
       else Some name
 
-  let is_drawer_end line = String.Caseless.equal (String.rstrip line) ":END:"
+  let is_drawer_end line = String.Caseless.equal (String.strip line) ":END:"
 
   let parse_property_line line =
     let trimmed = String.rstrip line in

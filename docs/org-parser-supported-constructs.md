@@ -53,6 +53,8 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
   text lines like `: code:` are not treated as drawers.
 - Drawer markers must start at column 1; indented `:NAME:` lines are treated as
   regular text (prevents false drawer opens on indented content).
+- Drawer closing marker `:END:` is matched case-insensitively and may be
+  indented with leading whitespace once a drawer is open.
 - `.property("KEY")` matching is case-insensitive for property names.
 - References: `lib/oq.ml:382`, `lib/oq.ml:396`, `lib/oq.ml:763`.
 

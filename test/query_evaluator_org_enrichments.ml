@@ -271,6 +271,30 @@ let () =
 
 let () =
   let inline_doc =
+    parse_inline "drawer-indented-end.org"
+      {|
+* Note
+:PROPERTIES:
+:OWNER: Alice
+  :END:
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".properties | .length") "1")
+
+let () =
+  let inline_doc =
+    parse_inline "drawer-tabbed-end.org"
+      {|
+* Note
+:PROPERTIES:
+:OWNER: Alice
+	:END:
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".properties | .length") "1")
+
+let () =
+  let inline_doc =
     parse_inline "dynamic-block.org"
       {|
 * Root
