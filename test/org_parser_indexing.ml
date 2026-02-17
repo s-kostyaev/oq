@@ -409,6 +409,19 @@ let () =
 
 let () =
   match
+    Oq.Org.parse_string ~path:"src-indented-markers.org"
+      "* H\n  #+BEGIN_SRC ocaml\n** Child\n  #+END_SRC\n"
+  with
+  | Error err ->
+      failwithf "expected indented block markers parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.headings = 2);
+      assert (List.is_empty doc.index.blocks)
+
+let () =
+  match
     Oq.Org.parse_string ~path:"planning-combined.org"
       "* TODO Combined planning\nSCHEDULED: <2026-02-18 Wed> DEADLINE: <2026-02-20 Fri> CLOSED: [2026-02-21 Sat]\n"
   with

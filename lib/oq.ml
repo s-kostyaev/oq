@@ -517,6 +517,8 @@ module Org = struct
     | Opaque of string
 
   let parse_block_begin line =
+    if not (String.equal line (String.lstrip line)) then None
+    else
     let trimmed = String.strip line in
     let upper = String.uppercase trimmed in
     let prefix = "#+BEGIN_" in
@@ -562,6 +564,8 @@ module Org = struct
       | _ -> Some (Opaque kind_token)
 
   let parse_block_end line =
+    if not (String.equal line (String.lstrip line)) then None
+    else
     let trimmed = String.strip line in
     let upper = String.uppercase trimmed in
     let prefix = "#+END_" in
@@ -595,11 +599,14 @@ module Org = struct
     loop start_index
 
   let parse_dynamic_block_begin line =
-    let trimmed = String.strip line in
-    String.is_prefix (String.uppercase trimmed) ~prefix:"#+BEGIN:"
+    if not (String.equal line (String.lstrip line)) then false
+    else
+      let trimmed = String.strip line in
+      String.is_prefix (String.uppercase trimmed) ~prefix:"#+BEGIN:"
 
   let is_dynamic_block_end line =
-    String.Caseless.equal (String.strip line) "#+END:"
+    String.equal line (String.lstrip line)
+    && String.Caseless.equal (String.strip line) "#+END:"
 
   let has_dynamic_block_end_ahead ~lines ~start_index =
     let line_count = Array.length lines in

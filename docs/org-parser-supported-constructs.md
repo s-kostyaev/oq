@@ -73,6 +73,8 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
   - `EXAMPLE`,
   - `QUOTE`,
   - `EXPORT` (optional backend).
+- Block markers must start at column 1; indented `#+BEGIN_...`/`#+END_...`
+  lines are treated as plain content.
 - Block headers accept space or tab as separator before optional parameters
   (for example `#+BEGIN_SRC\tocaml`).
 - `SRC`/`EXPORT` header arguments after language/backend are tolerated
