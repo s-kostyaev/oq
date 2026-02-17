@@ -96,6 +96,8 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
 - Plain `file+sys:...` and `file+emacs:...` links are also recognized.
 - Plain `irc:...`, `gnus:...`, `rmail:...`, `docview:...`, and `bbdb:...` links are also recognized.
 - Plain `mhe:...`, `wl:...`, `vm:...`, and `vm-imap:...` links are also recognized.
+- `#+LINK: abbrev ...` keyword definitions are honored for plain links
+  (for example `#+LINK: gh https://github.com/%s` enables `gh:owner/repo`).
 - Plain link tokenization is whitespace-aware (spaces and tabs).
 - Angle links `<...>` are parsed before tokenization, so targets with spaces are preserved
   (for example `<https://example.com/path with spaces>` and `<bbdb:R.* Stallman>`).

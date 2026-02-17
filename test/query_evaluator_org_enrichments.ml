@@ -524,6 +524,18 @@ vm-imap:work:Inbox#123
 
 let () =
   let inline_doc =
+    parse_inline "links-custom-abbrev.org"
+      {|
+#+LINK: gh https://github.com/%s
+* Note
+gh:ocaml/dune
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".links | .length") "1");
+  assert_contains (run_ok inline_doc ".links | map(.target)") "gh:ocaml/dune"
+
+let () =
+  let inline_doc =
     parse_inline "links-bracket.org"
       {|
 * Links

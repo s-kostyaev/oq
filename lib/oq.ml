@@ -436,6 +436,13 @@ module Org = struct
               else if String.exists key ~f:Char.is_whitespace then None
               else Some (key, String.strip right)
 
+  let parse_link_abbrev_keyword_value value =
+    match whitespace_tokens value with
+    | [] -> None
+    | abbrev :: _ ->
+        if String.is_substring abbrev ~substring:":" then None
+        else Some (String.lowercase abbrev)
+
   let is_comment_line line =
     let trimmed = String.lstrip line in
     String.is_prefix trimmed ~prefix:"#"
@@ -623,29 +630,30 @@ module Org = struct
     in
     drop_trailing initial
 
+  let is_plain_link_type text =
+    let is_scheme_char = function
+      | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '+' | '-' | '.' -> true
+      | _ -> false
+    in
+    let length = String.length text in
+    length > 0
+    &&
+    match text.[0] with
+    | 'a' .. 'z' | 'A' .. 'Z' ->
+        let rec loop index =
+          if index >= length then true
+          else if is_scheme_char text.[index] then loop (index + 1)
+          else false
+        in
+        loop 1
+    | _ -> false
+
   let is_uri_with_scheme token =
     match String.substr_index token ~pattern:"://" with
     | None -> false
     | Some scheme_end ->
-        let is_scheme_char = function
-          | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '+' | '-' | '.' -> true
-          | _ -> false
-        in
-        let starts_with_alpha =
-          scheme_end > 0
-          &&
-          match token.[0] with
-          | 'a' .. 'z' | 'A' .. 'Z' -> true
-          | _ -> false
-        in
-        starts_with_alpha
-        &&
-        let rec loop index =
-          if index >= scheme_end then true
-          else if is_scheme_char token.[index] then loop (index + 1)
-          else false
-        in
-        loop 1
+        scheme_end > 0
+        && is_plain_link_type (String.prefix token scheme_end)
 
   let is_known_plain_scheme token =
     let lower = String.lowercase token in
@@ -686,7 +694,15 @@ module Org = struct
     in
     has_prefix "/" || has_prefix "./" || has_prefix "../"
 
-  let extract_angle_links line =
+  let is_custom_plain_scheme ~custom_link_types token =
+    match String.lsplit2 token ~on:':' with
+    | None -> false
+    | Some (scheme, rest) ->
+        not (String.is_empty rest)
+        && is_plain_link_type scheme
+        && Hash_set.mem custom_link_types (String.lowercase scheme)
+
+  let extract_angle_links ~custom_link_types line =
     let rec loop position acc =
       match String.substr_index ~pos:position line ~pattern:"<" with
       | None -> List.rev acc
@@ -705,6 +721,7 @@ module Org = struct
                   is_uri_with_scheme candidate
                   || is_known_plain_scheme candidate
                   || is_plain_file_path candidate
+                  || is_custom_plain_scheme ~custom_link_types candidate
                 then candidate :: acc
                 else acc
               in
@@ -712,7 +729,7 @@ module Org = struct
     in
     loop 0 []
 
-  let extract_plain_links line =
+  let extract_plain_links ~custom_link_types line =
     whitespace_tokens line
     |> List.filter_map ~f:(fun token ->
            let looks_like_delimited_fragment =
@@ -729,6 +746,7 @@ module Org = struct
                is_uri_with_scheme normalized
                || is_known_plain_scheme normalized
                || is_plain_file_path normalized
+               || is_custom_plain_scheme ~custom_link_types normalized
              then Some normalized
              else None)
 
@@ -863,6 +881,7 @@ module Org = struct
         let line_count = Array.length lines in
         let todo_config = ref Todo_config.default in
         let has_explicit_todo_config = ref false in
+        let custom_link_types = String.Hash_set.create () in
         let keywords_rev = ref [] in
         let heading_stack = ref [] in
         let current_heading_id = ref None in
@@ -916,7 +935,10 @@ module Org = struct
                   }
                   :: !links_rev);
           let plain_links =
-            let combined = extract_angle_links line @ extract_plain_links line in
+            let combined =
+              extract_angle_links ~custom_link_types line
+              @ extract_plain_links ~custom_link_types line
+            in
             let seen = String.Hash_set.create () in
             List.filter combined ~f:(fun target ->
                 if Hash_set.mem seen target then false
@@ -1088,6 +1110,11 @@ module Org = struct
                                 else (
                                   todo_config := parsed;
                                   has_explicit_todo_config := true)
+                            | None -> ())
+                          else if String.equal key "LINK" then
+                            (match parse_link_abbrev_keyword_value value with
+                            | Some abbrev ->
+                                Hash_set.add custom_link_types abbrev
                             | None -> ())
                       | None ->
                         if is_comment_line line then ()

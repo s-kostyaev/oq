@@ -797,6 +797,20 @@ let () =
 
 let () =
   match
+    Oq.Org.parse_string ~path:"links-custom-abbrev.org"
+      "#+LINK: gh https://github.com/%s\n* Note\ngh:ocaml/dune\n"
+  with
+  | Error err ->
+      failwithf "expected LINK abbrev plain links parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.links = 1);
+      assert
+        (String.equal (List.hd_exn doc.index.links).target "gh:ocaml/dune")
+
+let () =
+  match
     Oq.Org.parse_string ~path:"links-bracket.org"
       "* Links\n[[https://example.com/docs][Example Docs]]\n"
   with
