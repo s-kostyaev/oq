@@ -123,7 +123,7 @@ Source PRD: `/Users/sergeykostyaev/ocaml/oq/docs/PRD-oq-v1.md` (Final v1.0, 2026
    lint + unit + golden + integration + benchmark checks.
 3. [DONE] Add agent E2E test suite:
    scripted scenarios that emulate iterative agent usage and validate stable outputs between runs.
-4. Build release flow:
+4. [DONE] Build release flow:
    GitHub binaries first, then `opam`, then Homebrew.
 5. [DONE] Publish "Agent Playbook":
    compact cookbook of high-signal queries, troubleshooting flow, and deterministic run recommendations.

@@ -70,6 +70,8 @@ gh pr checks <pr-number>
 
 ## 4. Release Operations
 
+For ordered release policy and publish checklist (GitHub binaries -> opam -> Homebrew), see `docs/release-flow.md`.
+
 ### 4.1 Create release from a tag
 
 ```bash

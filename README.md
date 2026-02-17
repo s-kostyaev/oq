@@ -51,6 +51,7 @@ oq --strict notes/ ".headings | .length"
 - Agent query cookbook: `docs/agent-playbook.md`
 - CI policy: `docs/ci-gates.md`
 - GitHub workflow guidance: `docs/gh-operations.md`
+- Release pipeline: `docs/release-flow.md`
 
 ## License
 
