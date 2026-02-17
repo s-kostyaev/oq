@@ -896,6 +896,17 @@ let () =
 
 let () =
   match
+    Oq.Org.parse_string ~path:"links-custom-abbrev-in-src.org"
+      "* Note\n#+BEGIN_SRC text\n#+LINK: gh https://github.com/%s\n#+END_SRC\ngh:ocaml/dune\n"
+  with
+  | Error err ->
+      failwithf "expected LINK abbrev in src to stay inactive, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc -> assert (List.length doc.index.links = 0)
+
+let () =
+  match
     Oq.Org.parse_string ~path:"links-bracket.org"
       "* Links\n[[https://example.com/docs][Example Docs]]\n"
   with

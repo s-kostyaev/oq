@@ -108,6 +108,7 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
   (for example `#+LINK: gh https://github.com/%s` enables `gh:owner/repo`).
 - `#+LINK` abbreviations are collected file-wide, so usage order is flexible
   (`gh:owner/repo` can appear before its `#+LINK: gh ...` declaration).
+- `#+LINK` inside block bodies is ignored (only real keyword lines define abbreviations).
 - Plain link tokenization is whitespace-aware (spaces and tabs).
 - Angle links `<...>` are parsed before tokenization, so targets with spaces are preserved
   (for example `<https://example.com/path with spaces>` and `<bbdb:R.* Stallman>`).

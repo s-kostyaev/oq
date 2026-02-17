@@ -888,6 +888,76 @@ module Org = struct
     mutable rows_rev : string list list;
   }
 
+  let collect_link_abbreviations lines =
+    let custom_link_types = String.Hash_set.create () in
+    let line_count = Array.length lines in
+    let open_drawer_state : open_drawer option ref = ref None in
+    let open_block_state : open_block option ref = ref None in
+    for line_index = 0 to line_count - 1 do
+      let line = lines.(line_index) in
+      match !open_block_state with
+      | Some block_state ->
+          (match block_state with
+          | Open_dynamic _ ->
+              if is_dynamic_block_end line then open_block_state := None
+          | Open_supported _ | Open_opaque _ -> (
+              match parse_block_end line with
+              | Some ending_kind
+                when String.equal ending_kind (open_block_end_token block_state) ->
+                  open_block_state := None
+              | Some _ -> ()
+              | None -> ()))
+      | None ->
+          (match !open_drawer_state with
+          | Some _ ->
+              if is_drawer_end line then open_drawer_state := None else ()
+          | None ->
+              if is_table_line line then ()
+              else if parse_dynamic_block_begin line then
+                open_block_state := Some (Open_dynamic { start_line = line_index + 1 })
+              else
+                match parse_keyword_line line with
+                | Some (key, value) ->
+                    if String.equal key "LINK" then
+                      (match parse_link_abbrev_keyword_value value with
+                      | Some abbrev -> Hash_set.add custom_link_types abbrev
+                      | None -> ())
+                | None ->
+                    if is_comment_line line then ()
+                    else
+                      match parse_block_begin line with
+                      | Some (Supported (kind, language)) ->
+                          open_block_state :=
+                            Some
+                              (Open_supported
+                                 {
+                                   kind;
+                                   language;
+                                   start_line = line_index + 1;
+                                   heading_id = None;
+                                 })
+                      | Some (Opaque kind_token) ->
+                          open_block_state :=
+                            Some
+                              (Open_opaque
+                                 {
+                                   expected_end_token = kind_token;
+                                   start_line = line_index + 1;
+                                 })
+                      | None -> (
+                          match parse_drawer_open line with
+                          | Some name ->
+                              open_drawer_state :=
+                                Some
+                                  {
+                                    name;
+                                    start_line = line_index + 1;
+                                    heading_id = None;
+                                  }
+                          | None -> ()))
+    done;
+    custom_link_types
+
   let parse_string ~path content =
     if not (Utf8.is_valid content) then
       Error
@@ -904,14 +974,7 @@ module Org = struct
         let line_count = Array.length lines in
         let todo_config = ref Todo_config.default in
         let has_explicit_todo_config = ref false in
-        let custom_link_types = String.Hash_set.create () in
-        Array.iter lines ~f:(fun line ->
-            match parse_keyword_line line with
-            | Some (key, value) when String.equal key "LINK" -> (
-                match parse_link_abbrev_keyword_value value with
-                | Some abbrev -> Hash_set.add custom_link_types abbrev
-                | None -> ())
-            | _ -> ());
+        let custom_link_types = collect_link_abbreviations lines in
         let keywords_rev = ref [] in
         let heading_stack = ref [] in
         let current_heading_id = ref None in
