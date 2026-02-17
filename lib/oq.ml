@@ -665,6 +665,7 @@ module Org = struct
       || has_prefix "info:"
       || has_prefix "man:"
       || has_prefix "doi:"
+      || has_prefix "attachment:"
     in
     whitespace_tokens line
     |> List.filter_map ~f:(fun token ->

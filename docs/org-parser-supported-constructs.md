@@ -89,6 +89,7 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
 - Plain `id:...` and `custom-id:...` links are also recognized.
 - Plain `news:...`, `shell:...`, `elisp:...`, `help:...`, `info:...`, and `man:...` links are also recognized.
 - Plain `doi:...` links are also recognized.
+- Plain `attachment:...` links are also recognized.
 - Plain link tokenization is whitespace-aware (spaces and tabs).
 - Bracket links are not duplicated as plain links.
 - Plain links preserve balanced trailing parentheses in URLs.

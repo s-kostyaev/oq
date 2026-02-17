@@ -400,6 +400,19 @@ doi:10.1000/182
 
 let () =
   let inline_doc =
+    parse_inline "links-attachment.org"
+      {|
+* Note
+attachment:report.pdf
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".links | .length") "1");
+  assert_contains
+    (run_ok inline_doc ".links | map(.target)")
+    "attachment:report.pdf"
+
+let () =
+  let inline_doc =
     parse_inline "links-bracket.org"
       {|
 * Links
