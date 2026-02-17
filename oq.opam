@@ -4,8 +4,9 @@ description: "oq is a deterministic query CLI for Org files optimized for agent 
 maintainer: ["Sergey Kostyaev"]
 authors: ["Sergey Kostyaev"]
 license: "MIT"
-homepage: "https://github.com/sergeykostyaev/oq"
-bug-reports: "https://github.com/sergeykostyaev/oq/issues"
+homepage: "https://github.com/s-kostyaev/oq"
+bug-reports: "https://github.com/s-kostyaev/oq/issues"
+dev-repo: "git+https://github.com/s-kostyaev/oq.git"
 depends: [
   "ocaml" {>= "5.1"}
   "dune" {>= "3.14"}

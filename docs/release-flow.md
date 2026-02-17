@@ -19,15 +19,14 @@ This runbook defines the required release order:
 Push a semver tag (`v*`) to trigger `.github/workflows/release.yml`:
 
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+git tag v1.0.3
+git push origin v1.0.3
 ```
 
 The workflow builds release artifacts for:
 
 1. `ubuntu-latest` (`linux-x86_64`)
-2. `macos-13` (`darwin-x86_64`)
-3. `macos-14` (`darwin-arm64`)
+2. `macos-14` (`darwin-arm64`)
 
 Each asset is uploaded as:
 
@@ -37,8 +36,8 @@ Each asset is uploaded as:
 ### 1.3 Verify
 
 ```bash
-gh release view v1.0.0
-gh release download v1.0.0 --pattern "oq-v1.0.0-linux-x86_64.tar.gz*"
+gh release view v1.0.3
+gh release download v1.0.3 --pattern "oq-v1.0.3-linux-x86_64.tar.gz*"
 ```
 
 ## 2. Publish to opam
