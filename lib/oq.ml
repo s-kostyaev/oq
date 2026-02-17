@@ -2951,7 +2951,7 @@ module Directory = struct
     String.length name > 0 && Char.equal name.[0] '.'
 
   let has_org_extension path =
-    String.Caseless.equal (Stdlib.Filename.extension path) ".org"
+    String.is_suffix (String.lowercase path) ~suffix:".org"
 
   let is_org_file name = has_org_extension name
   let normalize_relative_path = Ordering.normalize_relative_path
@@ -3097,7 +3097,7 @@ module Cli = struct
     else Diagnostic.error message
 
   let has_org_extension path =
-    String.Caseless.equal (Stdlib.Filename.extension path) ".org"
+    String.is_suffix (String.lowercase path) ~suffix:".org"
 
   let render_file_summary (doc : Org.t) =
     String.concat ~sep:"\n"

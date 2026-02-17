@@ -114,6 +114,17 @@ let () =
 
 let () =
   with_temp_dir (fun root ->
+      let input_path = write_file root ".org" "* Hidden file\nBody\n" in
+      let request : Oq.Cli.request =
+        { input_path; query = Some ".headings | .length"; strict = false; now = None; tz = None }
+      in
+      let outcome = Oq.Cli.execute request in
+      assert_exit outcome Oq.Exit_code.Success;
+      let stdout = require_stdout outcome in
+      assert_contains stdout "1")
+
+let () =
+  with_temp_dir (fun root ->
       let good = write_file root "good.org" "* Alpha\nBody\n" in
       ignore (write_file root "bad.org" "#+BEGIN_SRC ocaml\nlet x = 1\n");
       ignore (write_file root ".secret.org" "* Hidden\n");
