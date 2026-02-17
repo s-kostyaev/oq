@@ -94,7 +94,8 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
   (for example `https://...`, `HTTPS://...`, `ftp://...`).
 - Plain `file:...` and `mailto:...` links are also recognized.
 - Plain file links without `file:` prefix are recognized when they look like
-  complete paths (for example `./notes.org`, `../docs/spec.org`, `/ssh:me@host:/tmp/notes.org`).
+  complete paths (for example `./notes.org`, `../docs/spec.org`, `~/notes.org`,
+  `~alice/docs/spec.org`, `/ssh:me@host:/tmp/notes.org`).
 - Plain `id:...` and `custom-id:...` links are also recognized.
 - Plain `news:...`, `shell:...`, `elisp:...`, `help:...`, `info:...`, `man:...`, and `woman:...` links are also recognized.
 - Plain `doi:...` links are also recognized.

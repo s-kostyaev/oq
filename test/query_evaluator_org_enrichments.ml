@@ -532,6 +532,21 @@ let () =
 
 let () =
   let inline_doc =
+    parse_inline "links-file-tilde.org"
+      {|
+* Note
+~/notes.org
+~alice/docs/spec.org
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".links | .length") "2");
+  assert_contains (run_ok inline_doc ".links | map(.target)") "~/notes.org";
+  assert_contains
+    (run_ok inline_doc ".links | map(.target)")
+    "~alice/docs/spec.org"
+
+let () =
+  let inline_doc =
     parse_inline "links-more-schemes.org"
       {|
 * Note

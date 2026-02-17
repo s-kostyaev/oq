@@ -705,7 +705,17 @@ module Org = struct
       String.is_prefix token ~prefix
       && String.length token > String.length prefix
     in
-    has_prefix "/" || has_prefix "./" || has_prefix "../"
+    let is_tilde_path =
+      has_prefix "~/"
+      ||
+      (String.length token > 2
+      && Char.equal token.[0] '~'
+      &&
+      match String.substr_index token ~pattern:"/" with
+      | Some index -> index > 1
+      | None -> false)
+    in
+    has_prefix "/" || has_prefix "./" || has_prefix "../" || is_tilde_path
 
   let is_custom_plain_scheme ~custom_link_types token =
     match String.lsplit2 token ~on:':' with
