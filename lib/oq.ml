@@ -3499,15 +3499,32 @@ module Cli = struct
         | Caml_unix.S_DIR -> run_directory_mode request
         | Caml_unix.S_REG -> run_file_mode request
         | Caml_unix.S_LNK ->
-            make_outcome Exit_code.Query_or_usage_error
-              ~stderr_lines:
-                [
-                  Diagnostic.error
-                    (sprintf
-                       "input path %S is a symlink and is skipped by traversal \
-                        rules"
-                       request.input_path);
-                ]
+            let target_stat_result =
+              try Ok (Caml_unix.stat request.input_path)
+              with
+              | Caml_unix.Unix_error (error, _, _) ->
+                  Error
+                    (sprintf "unable to resolve symlink %s: %s"
+                       request.input_path
+                       (Caml_unix.error_message error))
+            in
+            (match target_stat_result with
+            | Error message ->
+                make_outcome Exit_code.Io_or_permission_error
+                  ~stderr_lines:[ Diagnostic.error message ]
+            | Ok target_stat -> (
+                match target_stat.st_kind with
+                | Caml_unix.S_REG -> run_file_mode request
+                | _ ->
+                    make_outcome Exit_code.Query_or_usage_error
+                      ~stderr_lines:
+                        [
+                          Diagnostic.error
+                            (sprintf
+                               "input path %S is a symlink and is skipped by \
+                                traversal rules"
+                               request.input_path);
+                        ]))
         | _ ->
             make_outcome Exit_code.Query_or_usage_error
               ~stderr_lines:
