@@ -14,6 +14,15 @@
 - OCaml `>= 5.1`
 - dune `>= 3.14`
 
+## Install Locally
+
+```bash
+git clone https://github.com/s-kostyaev/oq.git
+cd oq
+dune build
+dune install
+```
+
 ## Build and Test
 
 ```bash
