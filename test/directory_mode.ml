@@ -231,6 +231,20 @@ let () =
 let () =
   with_temp_dir (fun root ->
       ignore
+        (write_file root "dynamic-heading-before-end.org"
+           "* Root\n#+BEGIN: clocktable :scope file\n** Child\n#+END:\n");
+      let outcome = run_directory ~query:(Some ".headings | .length") root in
+      assert_exit outcome Oq.Exit_code.Success;
+      let stdout = require_stdout outcome in
+      assert (extract_counter stdout "candidate_org" = 1);
+      assert (extract_counter stdout "parsed_ok" = 1);
+      assert (extract_counter stdout "parse_failed" = 0);
+      assert_contains stdout "dynamic-heading-before-end.org:";
+      assert_contains stdout "  2")
+
+let () =
+  with_temp_dir (fun root ->
+      ignore
         (write_file root "dynamic-block-bad-end.org"
            "#+BEGIN: clocktable :scope file\n* Inner\n#+END:foo\n");
       let outcome = run_directory ~query:(Some ".headings | .length") root in
@@ -492,6 +506,34 @@ let () =
       assert (extract_counter stdout "parsed_ok" = 1);
       assert (extract_counter stdout "parse_failed" = 0);
       assert_contains stdout "src-indented-markers.org:";
+      assert_contains stdout "  2")
+
+let () =
+  with_temp_dir (fun root ->
+      ignore
+        (write_file root "src-heading-before-end.org"
+           "* H\n#+BEGIN_SRC ocaml\n** Child\n#+END_SRC\n");
+      let outcome = run_directory ~query:(Some ".headings | .length") root in
+      assert_exit outcome Oq.Exit_code.Success;
+      let stdout = require_stdout outcome in
+      assert (extract_counter stdout "candidate_org" = 1);
+      assert (extract_counter stdout "parsed_ok" = 1);
+      assert (extract_counter stdout "parse_failed" = 0);
+      assert_contains stdout "src-heading-before-end.org:";
+      assert_contains stdout "  2")
+
+let () =
+  with_temp_dir (fun root ->
+      ignore
+        (write_file root "opaque-heading-before-end.org"
+           "* H\n#+BEGIN_CENTER\n** Child\n#+END_CENTER\n");
+      let outcome = run_directory ~query:(Some ".headings | .length") root in
+      assert_exit outcome Oq.Exit_code.Success;
+      let stdout = require_stdout outcome in
+      assert (extract_counter stdout "candidate_org" = 1);
+      assert (extract_counter stdout "parsed_ok" = 1);
+      assert (extract_counter stdout "parse_failed" = 0);
+      assert_contains stdout "opaque-heading-before-end.org:";
       assert_contains stdout "  2")
 
 let () =

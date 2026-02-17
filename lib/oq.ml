@@ -594,11 +594,13 @@ module Org = struct
       in
       Some kind
 
-  let has_block_end_ahead ~lines ~start_index ~expected_end_token =
+  let has_block_end_before_heading ~lines ~start_index ~expected_end_token =
     let line_count = Array.length lines in
     let rec loop index =
       if index >= line_count then false
       else
+        if Option.is_some (parse_heading_line lines.(index)) then false
+        else
         match parse_block_end lines.(index) with
         | Some ending_kind when String.equal ending_kind expected_end_token -> true
         | _ -> loop (index + 1)
@@ -615,10 +617,11 @@ module Org = struct
     String.equal line (String.lstrip line)
     && String.Caseless.equal (String.strip line) "#+END:"
 
-  let has_dynamic_block_end_ahead ~lines ~start_index =
+  let has_dynamic_block_end_before_heading ~lines ~start_index =
     let line_count = Array.length lines in
     let rec loop index =
       if index >= line_count then false
+      else if Option.is_some (parse_heading_line lines.(index)) then false
       else if is_dynamic_block_end lines.(index) then true
       else loop (index + 1)
     in
@@ -1005,7 +1008,8 @@ module Org = struct
               if is_table_line line then ()
               else if
                 parse_dynamic_block_begin line
-                && has_dynamic_block_end_ahead ~lines ~start_index:(line_index + 1)
+                && has_dynamic_block_end_before_heading ~lines
+                     ~start_index:(line_index + 1)
               then
                 open_block_state := Some (Open_dynamic { start_line = line_index + 1 })
               else
@@ -1020,7 +1024,7 @@ module Org = struct
                     else
                       match parse_block_begin line with
                       | Some (Supported (kind, language))
-                        when has_block_end_ahead ~lines
+                        when has_block_end_before_heading ~lines
                                ~start_index:(line_index + 1)
                                ~expected_end_token:(block_kind_to_end_token kind) ->
                           open_block_state :=
@@ -1033,7 +1037,7 @@ module Org = struct
                                    heading_id = None;
                                  })
                       | Some (Opaque kind_token)
-                        when has_block_end_ahead ~lines
+                        when has_block_end_before_heading ~lines
                                ~start_index:(line_index + 1)
                                ~expected_end_token:kind_token ->
                           open_block_state :=
@@ -1298,7 +1302,7 @@ module Org = struct
                     finalize_table (line_no - 1);
                     if
                       parse_dynamic_block_begin line
-                      && has_dynamic_block_end_ahead ~lines
+                      && has_dynamic_block_end_before_heading ~lines
                            ~start_index:(line_index + 1)
                     then
                       open_block_state := Some (Open_dynamic { start_line = line_no })
@@ -1326,7 +1330,7 @@ module Org = struct
                         else
                           (match parse_block_begin line with
                           | Some (Supported (kind, language))
-                            when has_block_end_ahead ~lines
+                            when has_block_end_before_heading ~lines
                                    ~start_index:(line_index + 1)
                                    ~expected_end_token:(block_kind_to_end_token kind) ->
                               open_block_state :=
@@ -1339,7 +1343,7 @@ module Org = struct
                                        heading_id = !current_heading_id;
                                      })
                           | Some (Opaque kind_token)
-                            when has_block_end_ahead ~lines
+                            when has_block_end_before_heading ~lines
                                    ~start_index:(line_index + 1)
                                    ~expected_end_token:kind_token ->
                               open_block_state :=

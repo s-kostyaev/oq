@@ -222,7 +222,7 @@ SCHEDULED: <2026-02-18 Wed>
         (Oq.Diagnostic.parse_reason_to_string err.reason)
         err.detail ()
   | Ok doc ->
-      assert (List.length doc.index.headings = 2);
+      assert (List.length doc.index.headings = 3);
       assert (List.length doc.index.blocks = 1);
       assert (List.length doc.index.planning = 1)
 
@@ -246,6 +246,19 @@ let () =
   with
   | Error err ->
       failwithf "expected dynamic block parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.headings = 2);
+      assert (List.is_empty doc.index.drawers)
+
+let () =
+  match
+    Oq.Org.parse_string ~path:"dynamic-heading-before-end.org"
+      "* Root\n#+BEGIN: clocktable :scope file\n** Child\n#+END:\n"
+  with
+  | Error err ->
+      failwithf "expected heading before dynamic end parse success, got %s (%s)"
         (Oq.Diagnostic.parse_reason_to_string err.reason)
         err.detail ()
   | Ok doc ->
@@ -414,6 +427,32 @@ let () =
   with
   | Error err ->
       failwithf "expected indented block markers parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.headings = 2);
+      assert (List.is_empty doc.index.blocks)
+
+let () =
+  match
+    Oq.Org.parse_string ~path:"src-heading-before-end.org"
+      "* H\n#+BEGIN_SRC ocaml\n** Child\n#+END_SRC\n"
+  with
+  | Error err ->
+      failwithf "expected heading before src end parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.headings = 2);
+      assert (List.is_empty doc.index.blocks)
+
+let () =
+  match
+    Oq.Org.parse_string ~path:"opaque-heading-before-end.org"
+      "* H\n#+BEGIN_CENTER\n** Child\n#+END_CENTER\n"
+  with
+  | Error err ->
+      failwithf "expected heading before opaque end parse success, got %s (%s)"
         (Oq.Diagnostic.parse_reason_to_string err.reason)
         err.detail ()
   | Ok doc ->

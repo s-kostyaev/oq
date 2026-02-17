@@ -93,8 +93,9 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
 - Dynamic block closing marker is matched strictly as `#+END:` (case-insensitive),
   so malformed endings like `#+END:foo` do not hide surrounding content.
 - Block openings are recognized conservatively only when a matching closing
-  marker appears later in the file; otherwise `#+BEGIN_...` text is treated as
-  plain content to avoid false parse failures on valid Org files.
+  marker appears before the next heading; otherwise `#+BEGIN_...` text is
+  treated as plain content to avoid false parse failures and heading loss on
+  valid Org files.
 - Other valid block types (for example `CENTER`, `VERSE`, `COMMENT`) are parsed as opaque regions:
   - they do not fail parsing,
   - they are not added to `index.blocks`.
