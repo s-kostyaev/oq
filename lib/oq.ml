@@ -3515,6 +3515,7 @@ module Cli = struct
             | Ok target_stat -> (
                 match target_stat.st_kind with
                 | Caml_unix.S_REG -> run_file_mode request
+                | Caml_unix.S_DIR -> run_directory_mode request
                 | _ ->
                     make_outcome Exit_code.Query_or_usage_error
                       ~stderr_lines:

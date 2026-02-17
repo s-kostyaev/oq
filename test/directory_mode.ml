@@ -150,6 +150,25 @@ let () =
 
 let () =
   with_temp_dir (fun root ->
+      let real_dir = Filename.concat root "real-dir" in
+      Caml_unix.mkdir real_dir 0o755;
+      ignore (write_file root "real-dir/a.org" "* Task\nBody\n");
+      let input_path = Filename.concat root "link-dir" in
+      Caml_unix.symlink real_dir input_path;
+      let request : Oq.Cli.request =
+        { input_path; query = Some ".headings | .length"; strict = false; now = None; tz = None }
+      in
+      let outcome = Oq.Cli.execute request in
+      assert_exit outcome Oq.Exit_code.Success;
+      let stdout = require_stdout outcome in
+      assert (extract_counter stdout "candidate_org" = 1);
+      assert (extract_counter stdout "parsed_ok" = 1);
+      assert (extract_counter stdout "parse_failed" = 0);
+      assert_contains stdout "a.org:";
+      assert_contains stdout "  1")
+
+let () =
+  with_temp_dir (fun root ->
       let input_path = write_file root ".org" "* Hidden file\nBody\n" in
       let request : Oq.Cli.request =
         { input_path; query = Some ".headings | .length"; strict = false; now = None; tz = None }
