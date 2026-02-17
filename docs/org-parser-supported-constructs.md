@@ -16,6 +16,7 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
 - TODO keyword (based on active TODO config).
 - Priority cookie in the form `[#A]`.
 - Trailing tags in the form `:tag1:tag2:`.
+- Trailing tags are recognized when separated by spaces or tabs.
 - Reference: `lib/oq.ml:349`.
 
 3. Keyword lines `#+KEY: VALUE`

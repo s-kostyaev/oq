@@ -359,14 +359,25 @@ module Org = struct
 
   let split_title_and_tags raw_heading_body =
     let trimmed = String.rstrip raw_heading_body in
-    match String.rsplit2 trimmed ~on:' ' with
-    | Some (prefix, suffix) when is_tag_token suffix ->
-        let tags =
-          String.split suffix ~on:':'
-          |> List.filter ~f:(fun tag -> not (String.is_empty tag))
+    let len = String.length trimmed in
+    let rec find_separator index =
+      if index < 0 then None
+      else if Char.is_whitespace trimmed.[index] then Some index
+      else find_separator (index - 1)
+    in
+    match find_separator (len - 1) with
+    | None -> (trimmed, [])
+    | Some separator_index ->
+        let suffix =
+          String.drop_prefix trimmed (separator_index + 1) |> String.strip
         in
-        (String.rstrip prefix, tags)
-    | _ -> (trimmed, [])
+        if is_tag_token suffix then
+          let tags =
+            String.split suffix ~on:':'
+            |> List.filter ~f:(fun tag -> not (String.is_empty tag))
+          in
+          (String.prefix trimmed separator_index |> String.rstrip, tags)
+        else (trimmed, [])
 
   let is_priority_cookie token =
     String.length token = 4

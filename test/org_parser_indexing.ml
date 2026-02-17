@@ -55,6 +55,17 @@ let () =
   assert (List.length todo.index.planning = 4)
 
 let () =
+  match Oq.Org.parse_string ~path:"tags-tab.org" "* Task\t:work:docs:\n" with
+  | Error err ->
+      failwithf "expected tab-delimited tags parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc -> (
+      match doc.index.headings with
+      | [ heading ] -> assert (Poly.equal heading.tags [ "work"; "docs" ])
+      | _ -> failwith "expected one heading with tags")
+
+let () =
   match
     Oq.Org.parse_string ~path:"todo-fast-keys.org"
       "#+TODO: TODO(t) NEXT(n) WAIT(w@/!) | DONE(d!) CANCELED(c@)\n* TODO task one\n* DONE task two\n"
