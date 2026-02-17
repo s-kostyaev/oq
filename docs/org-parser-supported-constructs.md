@@ -29,7 +29,11 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
 - Multiple `#+TODO:` lines are merged into one effective workflow config.
 - References: `lib/oq.ml:369`, `lib/oq.ml:120`, `lib/oq.ml:795`.
 
-4. Planning metadata
+4. Comment lines
+- Lines starting with `#` (but not `#+...`) are treated as comments and ignored by content indexing.
+- References: `lib/oq.ml`, `test/org_parser_indexing.ml`.
+
+5. Planning metadata
 - `SCHEDULED: ...`
 - `DEADLINE: ...`
 - `CLOSED: ...`
@@ -39,12 +43,12 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
   (plain text mentioning `SCHEDULED:` does not create planning entries).
 - References: `lib/oq.ml:528`, `lib/oq.ml:705`.
 
-5. Drawers and properties
+6. Drawers and properties
 - Drawer open/close parsing using `:NAME:` and `:END:`.
 - Property extraction (`:KEY: VALUE`) from `:PROPERTIES:`.
 - References: `lib/oq.ml:382`, `lib/oq.ml:396`, `lib/oq.ml:763`.
 
-6. Blocks `#+BEGIN_...` / `#+END_...`
+7. Blocks `#+BEGIN_...` / `#+END_...`
 - Indexed block types:
   - `SRC` (optional language),
   - `EXAMPLE`,
@@ -62,12 +66,12 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
   - they are not added to `index.blocks`.
 - References: `lib/oq.ml:419`, `lib/oq.ml:431`, `lib/oq.ml:463`.
 
-7. Links in text
+8. Links in text
 - Bracket links: `[[target][description]]` and `[[target]]`.
 - Plain links: tokens starting with `http://` or `https://`.
 - References: `lib/oq.ml:493`, `lib/oq.ml:502`, `lib/oq.ml:629`.
 
-8. Tables
+9. Tables
 - Table regions start with lines whose trimmed form begins with `|`.
 - Each table row is split into cells by `|`.
 - References: `lib/oq.ml:469`, `lib/oq.ml:473`, `lib/oq.ml:777`.

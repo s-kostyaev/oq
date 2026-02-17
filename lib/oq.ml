@@ -436,6 +436,11 @@ module Org = struct
               else if String.exists key ~f:Char.is_whitespace then None
               else Some (key, String.strip right)
 
+  let is_comment_line line =
+    let trimmed = String.lstrip line in
+    String.is_prefix trimmed ~prefix:"#"
+    && not (String.is_prefix trimmed ~prefix:"#+")
+
   let parse_drawer_open line =
     let trimmed = String.strip line in
     let len = String.length trimmed in
@@ -902,41 +907,44 @@ module Org = struct
                                 has_explicit_todo_config := true)
                           | None -> ())
                     | None ->
-                        (match parse_block_begin line with
-                        | Some (Supported (kind, language)) ->
-                            open_block_state :=
-                              Some
-                                (Open_supported
-                                   {
-                                     kind;
-                                     language;
-                                     start_line = line_no;
-                                     heading_id = !current_heading_id;
-                                   })
-                        | Some (Opaque kind_token) ->
-                            open_block_state :=
-                              Some
-                                (Open_opaque
-                                   {
-                                     expected_end_token = kind_token;
-                                     start_line = line_no;
-                                   })
-                        | None ->
-                            (match parse_drawer_open line with
-                            | Some name ->
-                                open_drawer_state :=
-                                  Some
-                                    {
-                                      name;
-                                      start_line = line_no;
-                                      heading_id = !current_heading_id;
-                                    }
-                            | None ->
-                                (match parse_heading_line line with
-                                | Some (level, raw_heading_body) ->
-                                    add_heading ~line_no ~level ~raw_heading_body
-                                | None -> add_planning_entries ~line ~line_no);
-                            add_links ~line ~line_no ~heading_id:!current_heading_id))))
+                        if is_comment_line line then ()
+                        else
+                          (match parse_block_begin line with
+                          | Some (Supported (kind, language)) ->
+                              open_block_state :=
+                                Some
+                                  (Open_supported
+                                     {
+                                       kind;
+                                       language;
+                                       start_line = line_no;
+                                       heading_id = !current_heading_id;
+                                     })
+                          | Some (Opaque kind_token) ->
+                              open_block_state :=
+                                Some
+                                  (Open_opaque
+                                     {
+                                       expected_end_token = kind_token;
+                                       start_line = line_no;
+                                     })
+                          | None ->
+                              (match parse_drawer_open line with
+                              | Some name ->
+                                  open_drawer_state :=
+                                    Some
+                                      {
+                                        name;
+                                        start_line = line_no;
+                                        heading_id = !current_heading_id;
+                                      }
+                              | None ->
+                                  (match parse_heading_line line with
+                                  | Some (level, raw_heading_body) ->
+                                      add_heading ~line_no ~level ~raw_heading_body
+                                  | None -> add_planning_entries ~line ~line_no);
+                              add_links ~line ~line_no
+                                ~heading_id:!current_heading_id))))
         done;
 
         finalize_table line_count;

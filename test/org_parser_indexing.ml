@@ -344,6 +344,19 @@ let () =
   | Ok doc -> assert (List.is_empty doc.index.planning)
 
 let () =
+  match
+    Oq.Org.parse_string ~path:"comment-lines.org"
+      "* Note\n# this is a comment with https://example.com\n# SCHEDULED: <2026-02-18 Wed>\n"
+  with
+  | Error err ->
+      failwithf "expected comment-lines parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.is_empty doc.index.links);
+      assert (List.is_empty doc.index.planning)
+
+let () =
   let bytes = Bytes.create 1 in
   Bytes.set bytes 0 (Char.of_int_exn 0xFF);
   let invalid = Bytes.to_string bytes in

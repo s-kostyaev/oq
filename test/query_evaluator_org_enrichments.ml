@@ -185,6 +185,18 @@ let x = 1
   assert (String.equal (run_ok inline_doc ".code('OCAML') | .length") "1")
 
 let () =
+  let inline_doc =
+    parse_inline "comment-lines.org"
+      {|
+* Note
+# this is a comment with https://example.com
+# SCHEDULED: <2026-02-18 Wed>
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".links | .length") "0");
+  assert (String.equal (run_ok inline_doc ".scheduled | .length") "0")
+
+let () =
   let todo = parse_fixture "fixtures/corpus/todo_workflows.org" in
   let now = "2026-02-17T10:30:00-08:00" in
   let tz = "America/Los_Angeles" in
