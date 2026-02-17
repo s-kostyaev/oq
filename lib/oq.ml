@@ -524,8 +524,6 @@ module Org = struct
     | Opaque of string
 
   let parse_block_begin line =
-    if not (String.equal line (String.lstrip line)) then None
-    else
     let trimmed = String.strip line in
     let upper = String.uppercase trimmed in
     let prefix = "#+BEGIN_" in
@@ -571,8 +569,6 @@ module Org = struct
       | _ -> Some (Opaque kind_token)
 
   let parse_block_end line =
-    if not (String.equal line (String.lstrip line)) then None
-    else
     let trimmed = String.strip line in
     let upper = String.uppercase trimmed in
     let prefix = "#+END_" in
@@ -608,14 +604,11 @@ module Org = struct
     loop start_index
 
   let parse_dynamic_block_begin line =
-    if not (String.equal line (String.lstrip line)) then false
-    else
-      let trimmed = String.strip line in
-      String.is_prefix (String.uppercase trimmed) ~prefix:"#+BEGIN:"
+    let trimmed = String.strip line in
+    String.is_prefix (String.uppercase trimmed) ~prefix:"#+BEGIN:"
 
   let is_dynamic_block_end line =
-    String.equal line (String.lstrip line)
-    && String.Caseless.equal (String.strip line) "#+END:"
+    String.Caseless.equal (String.strip line) "#+END:"
 
   let has_dynamic_block_end_before_heading ~lines ~start_index =
     let line_count = Array.length lines in
@@ -1325,8 +1318,7 @@ module Org = struct
                                 Hash_set.add custom_link_types abbrev
                             | None -> ())
                       | None ->
-                        if is_comment_line line || is_indented_keyword_like_line line
-                        then ()
+                        if is_comment_line line then ()
                         else
                           (match parse_block_begin line with
                           | Some (Supported (kind, language))
@@ -1355,6 +1347,8 @@ module Org = struct
                                      })
                           | Some _ -> ()
                           | None ->
+                              if is_indented_keyword_like_line line then ()
+                              else
                               (match parse_drawer_open line with
                               | Some name
                                 when has_drawer_end_before_heading ~lines

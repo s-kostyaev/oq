@@ -435,6 +435,39 @@ let () =
 
 let () =
   match
+    Oq.Org.parse_string ~path:"src-indented-end-marker.org"
+      "* H\n#+BEGIN_SRC ocaml\ntext\n  #+END_SRC\n"
+  with
+  | Error err ->
+      failwithf "expected src with indented end marker parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc -> assert (List.length doc.index.blocks = 1)
+
+let () =
+  match
+    Oq.Org.parse_string ~path:"src-indented-begin-marker.org"
+      "* H\n  #+BEGIN_SRC ocaml\ntext\n#+END_SRC\n"
+  with
+  | Error err ->
+      failwithf "expected src with indented begin marker parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc -> assert (List.length doc.index.blocks = 1)
+
+let () =
+  match
+    Oq.Org.parse_string ~path:"src-indented-begin-end-markers.org"
+      "* H\n  #+BEGIN_SRC ocaml\ntext\n  #+END_SRC\n"
+  with
+  | Error err ->
+      failwithf "expected src with indented begin/end markers parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc -> assert (List.length doc.index.blocks = 1)
+
+let () =
+  match
     Oq.Org.parse_string ~path:"src-heading-before-end.org"
       "* H\n#+BEGIN_SRC ocaml\n** Child\n#+END_SRC\n"
   with

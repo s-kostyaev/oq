@@ -248,6 +248,45 @@ let () =
 
 let () =
   let inline_doc =
+    parse_inline "src-indented-end-marker.org"
+      {|
+* H
+#+BEGIN_SRC ocaml
+https://example.com
+  #+END_SRC
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".code | .length") "1");
+  assert (String.equal (run_ok inline_doc ".links | .length") "0")
+
+let () =
+  let inline_doc =
+    parse_inline "src-indented-begin-marker.org"
+      {|
+* H
+  #+BEGIN_SRC ocaml
+https://example.com
+#+END_SRC
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".code | .length") "1");
+  assert (String.equal (run_ok inline_doc ".links | .length") "0")
+
+let () =
+  let inline_doc =
+    parse_inline "src-indented-begin-end-markers.org"
+      {|
+* H
+  #+BEGIN_SRC ocaml
+https://example.com
+  #+END_SRC
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".code | .length") "1");
+  assert (String.equal (run_ok inline_doc ".links | .length") "0")
+
+let () =
+  let inline_doc =
     parse_inline "src-heading-before-end.org"
       {|
 * H
