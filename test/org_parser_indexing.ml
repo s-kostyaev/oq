@@ -185,6 +185,36 @@ let () =
       | _ -> failwith "expected one src block with header args")
 
 let () =
+  match
+    Oq.Org.parse_string ~path:"planning-combined.org"
+      "* TODO Combined planning\nSCHEDULED: <2026-02-18 Wed> DEADLINE: <2026-02-20 Fri> CLOSED: [2026-02-21 Sat]\n"
+  with
+  | Error err ->
+      failwithf "expected combined planning parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      let by_kind kind =
+        List.find doc.index.planning ~f:(fun item -> Poly.equal item.kind kind)
+      in
+      assert (List.length doc.index.planning = 3);
+      assert
+        (String.equal
+           (Option.value_map (by_kind Oq.Org.Scheduled) ~default:""
+              ~f:(fun item -> item.raw_value))
+           "<2026-02-18 Wed>");
+      assert
+        (String.equal
+           (Option.value_map (by_kind Oq.Org.Deadline) ~default:""
+              ~f:(fun item -> item.raw_value))
+           "<2026-02-20 Fri>");
+      assert
+        (String.equal
+           (Option.value_map (by_kind Oq.Org.Closed) ~default:""
+              ~f:(fun item -> item.raw_value))
+           "[2026-02-21 Sat]")
+
+let () =
   let bytes = Bytes.create 1 in
   Bytes.set bytes 0 (Char.of_int_exn 0xFF);
   let invalid = Bytes.to_string bytes in

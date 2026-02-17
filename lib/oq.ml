@@ -534,22 +534,33 @@ module Org = struct
     loop 0 []
 
   let parse_planning_on_line line =
-    let scan kind keyword =
-      let pattern = keyword ^ ":" in
-      match String.substr_index line ~pattern with
-      | None -> None
-      | Some index ->
-          let value =
-            String.drop_prefix line (index + String.length pattern) |> String.strip
-          in
-          if String.is_empty value then None else Some (kind, value)
+    let markers =
+      [ (Scheduled, "SCHEDULED:"); (Deadline, "DEADLINE:"); (Closed, "CLOSED:") ]
+      |> List.filter_map ~f:(fun (kind, pattern) ->
+             Option.map (String.substr_index line ~pattern) ~f:(fun index ->
+                 (kind, index, String.length pattern)))
+      |> List.sort ~compare:(fun (_, left, _) (_, right, _) ->
+             Int.compare left right)
     in
-    [
-      scan Scheduled "SCHEDULED";
-      scan Deadline "DEADLINE";
-      scan Closed "CLOSED";
-    ]
-    |> List.filter_opt
+    let rec collect acc = function
+      | [] -> List.rev acc
+      | (kind, start_index, token_length) :: rest ->
+          let value_start = start_index + token_length in
+          let value_end =
+            match rest with
+            | (_, next_index, _) :: _ -> next_index
+            | [] -> String.length line
+          in
+          if value_end <= value_start then collect acc rest
+          else
+            let value =
+              String.sub line ~pos:value_start ~len:(value_end - value_start)
+              |> String.strip
+            in
+            if String.is_empty value then collect acc rest
+            else collect ((kind, value) :: acc) rest
+    in
+    collect [] markers
 
   type heading_builder = {
     id : int;

@@ -28,6 +28,7 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
 - `DEADLINE: ...`
 - `CLOSED: ...`
 - Stored as `planning_entry` values with `raw_value`.
+- Multiple planning keywords on one line are split correctly into separate values.
 - References: `lib/oq.ml:528`, `lib/oq.ml:705`.
 
 5. Drawers and properties

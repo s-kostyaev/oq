@@ -126,6 +126,27 @@ DEADLINE: <2026-02-10 Tue>
   assert_contains error "supported: today|tomorrow|yesterday|this_week|next_7d"
 
 let () =
+  let inline_doc =
+    parse_inline "combined-planning.org"
+      {|
+* TODO Combined planning
+SCHEDULED: <2026-02-18 Wed> DEADLINE: <2026-02-20 Fri>
+|}
+  in
+  let now = "2026-02-17T08:00:00-08:00" in
+  let tz = "America/Los_Angeles" in
+  assert (String.equal (run_ok inline_doc ".scheduled | .length") "1");
+  assert (String.equal (run_ok inline_doc ".deadline | .length") "1");
+  assert
+    (String.equal
+       (run_ok ~now ~tz inline_doc ".scheduled('next_7d') | .length")
+       "1");
+  assert
+    (String.equal
+       (run_ok ~now ~tz inline_doc ".deadline('next_7d') | .length")
+       "1")
+
+let () =
   let todo = parse_fixture "fixtures/corpus/todo_workflows.org" in
   assert_contains
     (run_error ~now:"2026-02-17" todo ".headings | .length")
