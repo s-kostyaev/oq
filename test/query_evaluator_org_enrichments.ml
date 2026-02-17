@@ -325,6 +325,19 @@ let () =
 
 let () =
   let inline_doc =
+    parse_inline "comment-block-with-heading-like-content.org"
+      {|
+* Root
+#+BEGIN_COMMENT
+** Hidden
+#+END_COMMENT
+** Child
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".headings | .length") "2")
+
+let () =
+  let inline_doc =
     parse_inline "fixed-width.org"
       {|
 * Note

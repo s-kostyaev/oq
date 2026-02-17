@@ -222,7 +222,7 @@ SCHEDULED: <2026-02-18 Wed>
         (Oq.Diagnostic.parse_reason_to_string err.reason)
         err.detail ()
   | Ok doc ->
-      assert (List.length doc.index.headings = 3);
+      assert (List.length doc.index.headings = 2);
       assert (List.length doc.index.blocks = 1);
       assert (List.length doc.index.planning = 1)
 
@@ -233,6 +233,19 @@ let () =
   with
   | Error err ->
       failwithf "expected unclosed opaque block parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.headings = 2);
+      assert (List.is_empty doc.index.blocks)
+
+let () =
+  match
+    Oq.Org.parse_string ~path:"comment-block-with-heading-like-content.org"
+      "* Root\n#+BEGIN_COMMENT\n** Hidden\n#+END_COMMENT\n** Child\n"
+  with
+  | Error err ->
+      failwithf "expected comment block with heading-like content parse success, got %s (%s)"
         (Oq.Diagnostic.parse_reason_to_string err.reason)
         err.detail ()
   | Ok doc ->

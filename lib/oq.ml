@@ -592,6 +592,17 @@ module Org = struct
       in
       Some kind
 
+  let has_block_end ~lines ~start_index ~expected_end_token =
+    let line_count = Array.length lines in
+    let rec loop index =
+      if index >= line_count then false
+      else
+      match parse_block_end lines.(index) with
+      | Some ending_kind when String.equal ending_kind expected_end_token -> true
+      | _ -> loop (index + 1)
+    in
+    loop start_index
+
   let has_block_end_before_heading ~lines ~start_index ~expected_end_token =
     let line_count = Array.length lines in
     let rec loop index =
@@ -1032,9 +1043,14 @@ module Org = struct
                                    heading_id = None;
                                  })
                       | Some (Opaque kind_token)
-                        when has_block_end_before_heading ~lines
-                               ~start_index:(line_index + 1)
-                               ~expected_end_token:kind_token ->
+                        when
+                          if String.equal kind_token "COMMENT" then
+                            has_block_end ~lines ~start_index:(line_index + 1)
+                              ~expected_end_token:kind_token
+                          else
+                            has_block_end_before_heading ~lines
+                              ~start_index:(line_index + 1)
+                              ~expected_end_token:kind_token ->
                           open_block_state :=
                             Some
                               (Open_opaque
@@ -1365,9 +1381,14 @@ module Org = struct
                                        heading_id = !current_heading_id;
                                      })
                           | Some (Opaque kind_token)
-                            when has_block_end_before_heading ~lines
-                                   ~start_index:(line_index + 1)
-                                   ~expected_end_token:kind_token ->
+                            when
+                              if String.equal kind_token "COMMENT" then
+                                has_block_end ~lines ~start_index:(line_index + 1)
+                                  ~expected_end_token:kind_token
+                              else
+                                has_block_end_before_heading ~lines
+                                  ~start_index:(line_index + 1)
+                                  ~expected_end_token:kind_token ->
                               open_block_state :=
                                 Some
                                   (Open_opaque
