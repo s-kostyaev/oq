@@ -71,6 +71,7 @@ Source of truth: implementation in `lib/oq.ml` and coverage tests in `test/org_p
 8. Links in text
 - Bracket links: `[[target][description]]` and `[[target]]`.
 - Plain links: tokens starting with `http://` or `https://`.
+- Plain link tokenization is whitespace-aware (spaces and tabs).
 - References: `lib/oq.ml:493`, `lib/oq.ml:502`, `lib/oq.ml:629`.
 
 9. Tables

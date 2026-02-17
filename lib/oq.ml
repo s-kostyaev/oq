@@ -566,7 +566,7 @@ module Org = struct
       | _ -> false)
 
   let extract_plain_links line =
-    String.split line ~on:' '
+    whitespace_tokens line
     |> List.filter_map ~f:(fun token ->
            let normalized = trim_plain_link_token token in
            if String.is_prefix normalized ~prefix:"http://"
