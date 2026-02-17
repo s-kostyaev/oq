@@ -95,3 +95,5 @@ Use a stable 4-step loop:
 3. Treat warning lines as part of deterministic output checks.
 4. In automation loops, retry at most once for `exit 1` after deterministic correction.
 5. Use exact query snapshots in tests for regression detection.
+
+For repository triage/release/CI command standards, see `docs/gh-operations.md`.

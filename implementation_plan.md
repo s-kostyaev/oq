@@ -127,7 +127,7 @@ Source PRD: `/Users/sergeykostyaev/ocaml/oq/docs/PRD-oq-v1.md` (Final v1.0, 2026
    GitHub binaries first, then `opam`, then Homebrew.
 5. [DONE] Publish "Agent Playbook":
    compact cookbook of high-signal queries, troubleshooting flow, and deterministic run recommendations.
-6. Standardize GitHub operations through `gh` CLI:
+6. [DONE] Standardize GitHub operations through `gh` CLI:
    issue/PR triage, release creation (`gh release create`), and CI status checks (`gh run list`, `gh run view`).
 7. Definition of Done:
    MVP meets PRD success metrics for latency, reliability, and deterministic output.
