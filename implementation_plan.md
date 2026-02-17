@@ -77,16 +77,16 @@ Source PRD: `/Users/sergeykostyaev/ocaml/oq/docs/PRD-oq-v1.md` (Final v1.0, 2026
 5. [DONE] Definition of Done:
    parser tests for precedence, postfix binding, and negative grammar scenarios pass.
 
-## 5. Evaluator: Core Selectors and Functions (M2, 5-6 days)
+## 5. Evaluator: Core Selectors and Functions (M2, 5-6 days) [DONE]
 
-1. Implement selectors:
+1. [DONE] Implement selectors:
    `.tree`, `.headings`, `.section`, `.section_contains`, `.sections`, `.search`, `.text`, `.length`.
-2. Implement pipeline and functions:
+2. [DONE] Implement pipeline and functions:
    `filter(predicate)`, `map(...)`, comparisons, `contains`, `startswith`, `endswith`.
-3. Implement `.section("title")` ambiguity behavior with disambiguation via `.section("title", start:end)`.
-4. Optimize selector execution order for agent loops:
+3. [DONE] Implement `.section("title")` ambiguity behavior with disambiguation via `.section("title", start:end)`.
+4. [DONE] Optimize selector execution order for agent loops:
    structure-first queries should be fast and avoid unnecessary full-content materialization.
-5. Definition of Done:
+5. [DONE] Definition of Done:
    golden tests for core queries and canonical errors pass.
 
 ## 6. Org-Specific Selectors and Date Semantics (M3, 5-6 days)

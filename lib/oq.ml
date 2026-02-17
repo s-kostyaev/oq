@@ -217,6 +217,7 @@ module Org = struct
 
   type t = {
     path : string;
+    lines : string array;
     line_count : int;
     keywords : (string * string) list;
     todo_config : Todo_config.t;
@@ -884,6 +885,7 @@ module Org = struct
                 Ok
                   {
                     path;
+                    lines;
                     line_count;
                     keywords = List.rev !keywords_rev;
                     todo_config = !todo_config;
@@ -1628,6 +1630,513 @@ module Query = struct
     | Ok ast -> ast
     | Error { message; position } ->
         failwithf "query parse error at %d: %s" position message ()
+end
+
+module Eval = struct
+  open Org
+
+  module Ast = Query.Ast
+
+  type error =
+    | Query_parse_error of Query.error
+    | Eval_error of string
+
+  exception Failure of string
+
+  module Value = struct
+    type section = {
+      heading : Org.heading;
+      source : Org.Source_ref.t;
+    }
+
+    type t =
+      | Document of Org.t
+      | Heading of Org.heading
+      | Section of section
+      | String of string
+      | Int of int
+      | Float of float
+      | Bool of bool
+      | Null
+      | List of t list
+  end
+
+  module Runtime = struct
+    type t = {
+      doc : Org.t;
+      section_text_by_heading : string Int.Table.t;
+    }
+
+    let create doc = { doc; section_text_by_heading = Int.Table.create () }
+
+    let text_for_span doc (span : Org.Span.t) =
+      let start_index = Int.max 0 (span.start_line - 1) in
+      let end_index = Int.min (Array.length doc.Org.lines) span.end_line in
+      if end_index <= start_index then ""
+      else
+        Array.slice doc.Org.lines start_index end_index |> Array.to_list
+        |> String.concat ~sep:"\n"
+
+    let section_text t (heading : Org.heading) =
+      match Hashtbl.find t.section_text_by_heading heading.id with
+      | Some cached -> cached
+      | None ->
+          let text = text_for_span t.doc heading.section_source.span in
+          Hashtbl.set t.section_text_by_heading ~key:heading.id ~data:text;
+          text
+  end
+
+  let failf fmt = Printf.ksprintf (fun message -> raise (Failure message)) fmt
+
+  let section_of_heading (heading : Org.heading) =
+    Value.Section { heading; source = heading.section_source }
+
+  let canonical_section_candidate (heading : Org.heading) :
+      Diagnostic.section_candidate =
+    {
+      title = heading.title;
+      start_line = heading.section_source.span.start_line;
+      end_line = heading.section_source.span.end_line;
+    }
+
+  let type_name = function
+    | Value.Document _ -> "document"
+    | Value.Heading _ -> "heading"
+    | Value.Section _ -> "section"
+    | Value.String _ -> "string"
+    | Value.Int _ -> "int"
+    | Value.Float _ -> "float"
+    | Value.Bool _ -> "bool"
+    | Value.Null -> "null"
+    | Value.List _ -> "list"
+
+  let as_list = function
+    | Value.List values -> values
+    | value -> failf "wrong type: expected list, got %s" (type_name value)
+
+  let as_string = function
+    | Value.String text -> text
+    | value -> failf "wrong type: expected string, got %s" (type_name value)
+
+  let as_bool = function
+    | Value.Bool flag -> flag
+    | value -> failf "wrong type: expected boolean, got %s" (type_name value)
+
+  let selector_arg_expr_exn name index = function
+    | Ast.Expr_arg expr -> expr
+    | Ast.Span_arg _ ->
+        failf "wrong type for .%s argument %d: expected expression, got span" name
+          index
+
+  let selector_arg_string_exn name index arg =
+    match selector_arg_expr_exn name index arg with
+    | Ast.Literal (Ast.String text) -> text
+    | _ ->
+        failf "wrong type for .%s argument %d: expected string literal" name index
+
+  let selector_arg_int_exn name index arg =
+    match selector_arg_expr_exn name index arg with
+    | Ast.Literal (Ast.Int value) -> value
+    | _ ->
+        failf "wrong type for .%s argument %d: expected integer literal" name index
+
+  let selector_arg_span_exn name index = function
+    | Ast.Span_arg (start_line, end_line) -> (start_line, end_line)
+    | _ ->
+        failf "wrong type for .%s argument %d: expected span start:end" name index
+
+  let heading_field_value runtime (heading : Org.heading) field =
+    match field with
+    | "id" -> Value.Int heading.id
+    | "level" -> Value.Int heading.level
+    | "raw_title" -> Value.String heading.raw_title
+    | "title" -> Value.String heading.title
+    | "state" -> (
+        match heading.todo_keyword with
+        | Some state -> Value.String state
+        | None -> Value.Null)
+    | "priority" -> (
+        match heading.priority with
+        | Some priority -> Value.String (String.of_char priority)
+        | None -> Value.Null)
+    | "tags" -> Value.List (List.map heading.tags ~f:(fun tag -> Value.String tag))
+    | "path" -> Value.String heading.source.path
+    | "start_line" -> Value.Int heading.section_source.span.start_line
+    | "end_line" -> Value.Int heading.section_source.span.end_line
+    | "text" -> Value.String (Runtime.section_text runtime heading)
+    | _ -> failf "unknown field .%s for heading" field
+
+  let field_value runtime value field =
+    let section_field_value (section : Value.section) =
+      match field with
+      | "source_start_line" -> Value.Int section.source.span.start_line
+      | "source_end_line" -> Value.Int section.source.span.end_line
+      | _ -> heading_field_value runtime section.heading field
+    in
+    match value with
+    | Value.Heading heading -> heading_field_value runtime heading field
+    | Value.Section section -> section_field_value section
+    | _ -> failf "unknown field .%s for %s" field (type_name value)
+
+  let float_of_numeric = function
+    | Value.Int value -> Float.of_int value
+    | Value.Float value -> value
+    | value -> failf "wrong type: expected numeric value, got %s" (type_name value)
+
+  let rec eval_comparison op left right =
+    let compare_numbers ~f =
+      let left_number = float_of_numeric left in
+      let right_number = float_of_numeric right in
+      Value.Bool (f left_number right_number)
+    in
+    match op with
+    | Ast.Eq -> (
+        match (left, right) with
+        | Value.Int l, Value.Int r -> Value.Bool (Int.equal l r)
+        | (Value.Int _ | Value.Float _), (Value.Int _ | Value.Float _) ->
+            compare_numbers ~f:Float.equal
+        | Value.String l, Value.String r -> Value.Bool (String.equal l r)
+        | Value.Bool l, Value.Bool r -> Value.Bool (Bool.equal l r)
+        | Value.Null, Value.Null -> Value.Bool true
+        | _ -> Value.Bool false)
+    | Ast.Ne -> (
+        match eval_comparison Ast.Eq left right with
+        | Value.Bool flag -> Value.Bool (not flag)
+        | _ -> assert false)
+    | Ast.Lt -> (
+        match (left, right) with
+        | (Value.Int _ | Value.Float _), (Value.Int _ | Value.Float _) ->
+            compare_numbers ~f:(fun left_value right_value ->
+                Float.(left_value < right_value))
+        | Value.String left_text, Value.String right_text ->
+            Value.Bool (String.compare left_text right_text < 0)
+        | _ ->
+            failf "wrong type: < supports only numeric or string comparisons")
+    | Ast.Le -> (
+        match (left, right) with
+        | (Value.Int _ | Value.Float _), (Value.Int _ | Value.Float _) ->
+            compare_numbers ~f:(fun left_value right_value ->
+                Float.(left_value <= right_value))
+        | Value.String left_text, Value.String right_text ->
+            Value.Bool (String.compare left_text right_text <= 0)
+        | _ ->
+            failf "wrong type: <= supports only numeric or string comparisons")
+    | Ast.Gt -> (
+        match (left, right) with
+        | (Value.Int _ | Value.Float _), (Value.Int _ | Value.Float _) ->
+            compare_numbers ~f:(fun left_value right_value ->
+                Float.(left_value > right_value))
+        | Value.String left_text, Value.String right_text ->
+            Value.Bool (String.compare left_text right_text > 0)
+        | _ ->
+            failf "wrong type: > supports only numeric or string comparisons")
+    | Ast.Ge -> (
+        match (left, right) with
+        | (Value.Int _ | Value.Float _), (Value.Int _ | Value.Float _) ->
+            compare_numbers ~f:(fun left_value right_value ->
+                Float.(left_value >= right_value))
+        | Value.String left_text, Value.String right_text ->
+            Value.Bool (String.compare left_text right_text >= 0)
+        | _ ->
+            failf "wrong type: >= supports only numeric or string comparisons")
+
+  let compile_regex pattern flags =
+    let options =
+      {
+        Re2.Options.default with
+        case_sensitive = not (String.contains flags 'i');
+        one_line = not (String.contains flags 'm');
+        dot_nl = String.contains flags 's';
+      }
+    in
+    Re2.create_exn ~options pattern
+
+  let parse_regex_literal raw =
+    if not (String.is_prefix raw ~prefix:"/") then None
+    else
+      match String.rsplit2 raw ~on:'/' with
+      | Some (prefix, flags) when String.is_prefix prefix ~prefix:"/" ->
+          Some (String.drop_prefix prefix 1, flags)
+      | _ -> None
+
+  let string_case_insensitive_contains text needle =
+    String.is_substring
+      (String.lowercase text)
+      ~substring:(String.lowercase needle)
+
+  let heading_by_id doc heading_id =
+    List.find_exn doc.index.headings ~f:(fun heading ->
+        Int.equal heading.id heading_id)
+
+  let rec eval_expr runtime current = function
+    | Ast.Literal (Ast.String text) -> Value.String text
+    | Ast.Literal (Ast.Int value) -> Value.Int value
+    | Ast.Literal (Ast.Float value) -> Value.Float value
+    | Ast.Literal (Ast.Bool value) -> Value.Bool value
+    | Ast.Path fields ->
+        List.fold fields ~init:current ~f:(fun value field ->
+            field_value runtime value field)
+    | Ast.Call { name; args } ->
+        let resolved_args = List.map args ~f:(eval_expr runtime current) in
+        (match (name, resolved_args) with
+        | "contains", [ left; right ] ->
+            let left_text = as_string left in
+            let right_text = as_string right in
+            Value.Bool (String.is_substring left_text ~substring:right_text)
+        | "startswith", [ left; right ] ->
+            let left_text = as_string left in
+            let right_text = as_string right in
+            Value.Bool (String.is_prefix left_text ~prefix:right_text)
+        | "endswith", [ left; right ] ->
+            let left_text = as_string left in
+            let right_text = as_string right in
+            Value.Bool (String.is_suffix left_text ~suffix:right_text)
+        | "contains", _ | "startswith", _ | "endswith", _ ->
+            failf "wrong arity for function %s (expected 2 args)" name
+        | _ ->
+            failf
+              "unknown function call %S in expression (supported: \
+               contains|startswith|endswith)"
+              name)
+    | Ast.Parenthesized predicate ->
+        Value.Bool (eval_predicate runtime current predicate)
+
+  and eval_predicate runtime current = function
+    | Ast.Predicate_value expr ->
+        eval_expr runtime current expr |> as_bool
+    | Ast.Predicate_compare { left; op; right } ->
+        let left_value = eval_expr runtime current left in
+        let right_value = eval_expr runtime current right in
+        eval_comparison op left_value right_value |> as_bool
+    | Ast.Predicate_and (left, right) ->
+        eval_predicate runtime current left
+        && eval_predicate runtime current right
+    | Ast.Predicate_or (left, right) ->
+        eval_predicate runtime current left
+        || eval_predicate runtime current right
+
+  let apply_selector runtime ({ Ast.name; args } : Ast.selector) current =
+    let doc = runtime.Runtime.doc in
+    match name with
+    | "tree" | "headings" ->
+        let headings = doc.index.headings in
+        let selected =
+          match args with
+          | [] -> headings
+          | [ arg ] ->
+              let max_level = selector_arg_int_exn name 1 arg in
+              if max_level < 1 then
+                failf ".%s expects a positive level when an argument is provided"
+                  name;
+              List.filter headings ~f:(fun heading -> heading.level <= max_level)
+          | _ -> failf ".%s expects at most one argument" name
+        in
+        Value.List (List.map selected ~f:(fun heading -> Value.Heading heading))
+    | "sections" ->
+        Value.List
+          (List.map doc.index.sections ~f:(fun section ->
+               let heading = heading_by_id doc section.heading_id in
+               Value.Section { heading; source = section.source }))
+    | "section" ->
+        let title =
+          match args with
+          | first :: _ -> selector_arg_string_exn name 1 first
+          | [] -> failf ".section expects 1 or 2 arguments"
+        in
+        let matches =
+          List.filter doc.index.headings ~f:(fun heading ->
+              String.equal heading.title title)
+        in
+        (match args with
+        | [ _ ] -> (
+            match matches with
+            | [] -> failf "section not found for title %S" title
+            | [ heading ] -> section_of_heading heading
+            | candidates ->
+                let formatted =
+                  List.map candidates ~f:canonical_section_candidate
+                in
+                failf "%s"
+                  (Diagnostic.ambiguous_section_error ~title
+                     ~candidates:formatted))
+        | [ _; span_arg ] ->
+            let requested_start, requested_end =
+              selector_arg_span_exn name 2 span_arg
+            in
+            let disambiguated =
+              List.find matches ~f:(fun heading ->
+                  Int.equal heading.section_source.span.start_line requested_start
+                  && Int.equal heading.section_source.span.end_line requested_end)
+            in
+            (match disambiguated with
+            | Some heading -> section_of_heading heading
+            | None ->
+                failf "section not found for title %S with span %d:%d" title
+                  requested_start requested_end)
+        | _ -> failf ".section expects 1 or 2 arguments")
+    | "section_contains" ->
+        let term =
+          match args with
+          | [ arg ] -> selector_arg_string_exn name 1 arg
+          | _ -> failf ".section_contains expects exactly 1 argument"
+        in
+        doc.index.headings
+        |> List.filter ~f:(fun heading ->
+               String.is_substring heading.title ~substring:term)
+        |> List.map ~f:section_of_heading |> fun values -> Value.List values
+    | "search" ->
+        let raw =
+          match args with
+          | [ arg ] -> selector_arg_string_exn name 1 arg
+          | _ -> failf ".search expects exactly 1 argument"
+        in
+        let matcher =
+          match parse_regex_literal raw with
+          | Some (pattern, flags) ->
+              let regex = compile_regex pattern flags in
+              fun text -> Re2.matches regex text
+          | None ->
+              fun text -> string_case_insensitive_contains text raw
+        in
+        let matched =
+          List.filter doc.index.headings ~f:(fun heading ->
+              matcher (Runtime.section_text runtime heading))
+        in
+        Value.List (List.map matched ~f:section_of_heading)
+    | "text" -> (
+        match current with
+        | Value.Document value ->
+            Value.String
+              (String.concat ~sep:"\n" (Array.to_list value.Org.lines))
+        | Value.Heading heading ->
+            Value.String (Runtime.section_text runtime heading)
+        | Value.Section section ->
+            Value.String (Runtime.section_text runtime section.heading)
+        | Value.List values ->
+            Value.List
+              (List.map values ~f:(fun value ->
+                   match value with
+                   | Value.Heading heading ->
+                       Value.String (Runtime.section_text runtime heading)
+                   | Value.Section section ->
+                       Value.String (Runtime.section_text runtime section.heading)
+                   | _ ->
+                       failf
+                         "wrong type: .text on list requires heading/section \
+                          elements"))
+        | value ->
+            failf "wrong type: .text is not supported for %s" (type_name value))
+    | "length" -> (
+        match current with
+        | Value.List values -> Value.Int (List.length values)
+        | Value.String text -> Value.Int (String.length text)
+        | value ->
+            failf "wrong type: .length is not supported for %s" (type_name value))
+    | "todos" | "done" | "properties" | "property" | "scheduled" | "deadline"
+    | "closed" | "tags" | "code" | "links" | "tables" ->
+        failf "selector .%s is not implemented yet" name
+    | _ -> failf "unknown selector .%s" name
+
+  let apply_index values raw_index =
+    let length = List.length values in
+    let index = if raw_index < 0 then length + raw_index else raw_index in
+    if index < 0 || index >= length then
+      failf "index %d out of bounds for length %d" raw_index length;
+    List.nth_exn values index
+
+  let normalize_slice_bound length value default =
+    let normalized =
+      match value with
+      | None -> default
+      | Some index -> if index < 0 then length + index else index
+    in
+    Int.min length (Int.max 0 normalized)
+
+  let apply_slice values start_opt end_opt =
+    let length = List.length values in
+    let start_index = normalize_slice_bound length start_opt 0 in
+    let end_index = normalize_slice_bound length end_opt length in
+    if end_index <= start_index then Value.List []
+    else Value.List (List.slice values start_index end_index)
+
+  let apply_field runtime value field =
+    match value with
+    | Value.List items ->
+        Value.List
+          (List.mapi items ~f:(fun index item ->
+               try field_value runtime item field
+               with
+               | Failure message ->
+                   failf "field access failed at index %d: %s" index message))
+    | _ -> field_value runtime value field
+
+  let apply_postfix runtime value = function
+    | Ast.Index index ->
+        let values = as_list value in
+        apply_index values index
+    | Ast.Slice (start_opt, end_opt) ->
+        let values = as_list value in
+        apply_slice values start_opt end_opt
+    | Ast.Field field -> apply_field runtime value field
+
+  let apply_function runtime fn current =
+    match fn with
+    | Ast.Filter predicate ->
+        let values = as_list current in
+        let kept =
+          List.filter values ~f:(fun item -> eval_predicate runtime item predicate)
+        in
+        Value.List kept
+    | Ast.Map expr ->
+        let values = as_list current in
+        Value.List (List.map values ~f:(fun item -> eval_expr runtime item expr))
+
+  let apply_stage runtime ({ Ast.atom_stage; postfixes } : Ast.stage) current =
+    let base =
+      match atom_stage with
+      | Ast.Selector selector -> apply_selector runtime selector current
+      | Ast.Function fn -> apply_function runtime fn current
+    in
+    List.fold postfixes ~init:base ~f:(apply_postfix runtime)
+
+  let eval ~doc stages =
+    let runtime = Runtime.create doc in
+    List.fold stages ~init:(Value.Document doc) ~f:(fun current stage ->
+        apply_stage runtime stage current)
+
+  let run ~doc query =
+    match Query.parse query with
+    | Error error -> Error (Query_parse_error error)
+    | Ok stages -> (
+        try Ok (eval ~doc stages) with
+        | Failure message -> Error (Eval_error message))
+
+  let render_scalar = function
+    | Value.String text -> text
+    | Value.Int value -> Int.to_string value
+    | Value.Float value -> Float.to_string value
+    | Value.Bool value -> Bool.to_string value
+    | Value.Null -> "null"
+    | Value.Heading heading ->
+        sprintf "%s (lines %d:%d)" heading.title
+          heading.section_source.span.start_line heading.section_source.span.end_line
+    | Value.Section section ->
+        sprintf "%s (lines %d:%d)" section.heading.title
+          section.source.span.start_line section.source.span.end_line
+    | Value.Document doc -> sprintf "Document(%s)" doc.path
+    | Value.List _ -> failf "internal error: expected scalar value for rendering"
+
+  let render_text value =
+    match value with
+    | Value.List values -> List.map values ~f:render_scalar |> String.concat ~sep:"\n"
+    | _ -> render_scalar value
+
+  let run_text ~doc query =
+    match run ~doc query with
+    | Ok value -> Ok (render_text value)
+    | Error (Query_parse_error { message; position }) ->
+        Error (sprintf "query parse error at %d: %s" position message)
+    | Error (Eval_error message) -> Error message
 end
 
 module Cli = struct

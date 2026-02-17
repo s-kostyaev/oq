@@ -54,3 +54,13 @@
  (libraries oq)
  (preprocess
   (pps ppx_jane)))
+
+(test
+ (name query_evaluator_core)
+ (modules query_evaluator_core)
+ (libraries oq)
+ (deps
+  (glob_files golden/evaluator_core_*.txt)
+  (glob_files_rec fixtures/*.org))
+ (preprocess
+  (pps ppx_jane)))

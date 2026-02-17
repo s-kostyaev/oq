@@ -1,0 +1,15 @@
+# Core Query Errors
+QUERY: .section('Inbox')
+Error: ambiguous section title "Inbox" (2 matches)
+  - Inbox (lines 6:8)
+  - Inbox (lines 9:13)
+Hint: use .section("Inbox", 6:8)
+---
+QUERY: .section('Inbox', 1:2)
+section not found for title "Inbox" with span 1:2
+---
+QUERY: .headings[9]
+index 9 out of bounds for length 4
+---
+QUERY: .section('Projects') | filter(.title == 'Projects')
+wrong type: expected list, got section

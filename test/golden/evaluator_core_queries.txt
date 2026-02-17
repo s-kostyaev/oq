@@ -1,0 +1,25 @@
+# Core Query Output
+QUERY: .headings | .length
+4
+---
+QUERY: .section('Inbox', 6:8) | .text
+** Inbox
+First inbox content to extract in workflow tests.
+
+---
+QUERY: .section_contains('Inbox') | .length
+2
+---
+QUERY: .search('second inbox') | .length
+2
+---
+QUERY: .search('/second inbox/i') | .length
+2
+---
+QUERY: .headings | filter(startswith(.title, 'In')) | map(.title)
+Inbox
+Inbox
+---
+QUERY: .headings[1:3].title
+Inbox
+Inbox
