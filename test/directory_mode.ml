@@ -679,6 +679,20 @@ let () =
 
 let () =
   with_temp_dir (fun root ->
+      ignore
+        (write_file root "links-mobile-geo.org"
+           "* Note\ntel:+123456789\nsms:+123456789\ngeo:37.786971,-122.399677\n");
+      let outcome = run_directory ~query:(Some ".links | .length") root in
+      assert_exit outcome Oq.Exit_code.Success;
+      let stdout = require_stdout outcome in
+      assert (extract_counter stdout "candidate_org" = 1);
+      assert (extract_counter stdout "parsed_ok" = 1);
+      assert (extract_counter stdout "parse_failed" = 0);
+      assert_contains stdout "links-mobile-geo.org:";
+      assert_contains stdout "  3")
+
+let () =
+  with_temp_dir (fun root ->
       ignore (write_file root "links-doi.org" "* Note\ndoi:10.1000/182\n");
       let outcome = run_directory ~query:(Some ".links | .length") root in
       assert_exit outcome Oq.Exit_code.Success;

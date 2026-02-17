@@ -474,6 +474,23 @@ calc:2+2
 
 let () =
   let inline_doc =
+    parse_inline "links-mobile-geo.org"
+      {|
+* Note
+tel:+123456789
+sms:+123456789
+geo:37.786971,-122.399677
+|}
+  in
+  assert (String.equal (run_ok inline_doc ".links | .length") "3");
+  assert_contains (run_ok inline_doc ".links | map(.target)") "tel:+123456789";
+  assert_contains (run_ok inline_doc ".links | map(.target)") "sms:+123456789";
+  assert_contains
+    (run_ok inline_doc ".links | map(.target)")
+    "geo:37.786971,-122.399677"
+
+let () =
+  let inline_doc =
     parse_inline "links-doi.org"
       {|
 * Note

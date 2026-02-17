@@ -707,6 +707,27 @@ let () =
 
 let () =
   match
+    Oq.Org.parse_string ~path:"links-mobile-geo.org"
+      "* Note\ntel:+123456789\nsms:+123456789\ngeo:37.786971,-122.399677\n"
+  with
+  | Error err ->
+      failwithf "expected tel/sms/geo plain links parse success, got %s (%s)"
+        (Oq.Diagnostic.parse_reason_to_string err.reason)
+        err.detail ()
+  | Ok doc ->
+      assert (List.length doc.index.links = 3);
+      assert
+        (List.exists doc.index.links ~f:(fun link ->
+             String.equal link.target "tel:+123456789"));
+      assert
+        (List.exists doc.index.links ~f:(fun link ->
+             String.equal link.target "sms:+123456789"));
+      assert
+        (List.exists doc.index.links ~f:(fun link ->
+             String.equal link.target "geo:37.786971,-122.399677"))
+
+let () =
+  match
     Oq.Org.parse_string ~path:"links-doi.org"
       "* Note\ndoi:10.1000/182\n"
   with
